@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settlement Replay | Seoul Basis</title>
+<style>
+:root{color-scheme:light;--ink:#342622;--wine:#632934;--line:#d9c9ad;--paper:#fffaf0;font:16px/1.55 system-ui,sans-serif;color:var(--ink);background:#f5eddf}
+*{box-sizing:border-box}body{margin:0}header{border-bottom:1px solid var(--line);background:var(--paper)}nav,main{max-width:1120px;margin:auto;padding:1rem clamp(1rem,4vw,2.5rem)}nav{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}a{color:var(--wine)}.brand{display:flex;align-items:center;gap:.6rem;font: bold 1.5rem Georgia,serif;text-decoration:none}.brand img{width:32px;height:32px}h1,h2{font-family:Georgia,serif;color:var(--wine);line-height:1.08}h1{font-size:clamp(2.4rem,7vw,4.5rem);margin:.4em 0 .2em}h2{margin:0 0 .7rem;font-size:1.55rem}p{margin:.45rem 0}section,form{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:clamp(1rem,3vw,1.6rem);margin:1rem 0}.controls,.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:1rem}.controls{align-items:end}.summary div{border-left:2px solid var(--line);padding-left:.8rem}.summary strong{display:block;font-size:1.45rem;font-variant-numeric:tabular-nums}label,small{display:block}input,select,button{font:inherit;padding:.55rem .65rem;border-radius:6px;border:1px solid var(--line);width:100%;min-width:0}input,select{background:white;color:var(--ink)}button{background:var(--wine);color:white;cursor:pointer}button:disabled{opacity:.6}table{border-collapse:collapse;width:100%;font-size:.95rem;font-variant-numeric:tabular-nums}th,td{text-align:left;padding:.65rem;border-bottom:1px solid var(--line);white-space:nowrap}.scroll{overflow:auto}#proof a,#market-link{overflow-wrap:anywhere}[hidden]{display:none!important}
+</style>
+<header><nav><a class="brand" href="/"><img src="/seoul-seal.svg" alt="">Seoul Basis</a><a href="/settlement">Settlement methodology</a></nav></header>
+<main>
+<h1>Settlement Replay</h1>
+<p>Inspect a Solana mainnet round, reconstruct its USDC payouts, and verify its settlement transaction.</p>
+<form id="lookup" class="controls">
+<label>Market<select id="pair"></select></label>
+<label>Round address<input id="market" required autocomplete="off" spellcheck="false"></label>
+<button id="load">Load round</button>
+</form>
+<p id="status" role="status"></p>
+<div id="result" hidden>
+<section><h2 id="round-title">Round</h2><div class="summary">
+<div>Entry spread<strong id="entry"></strong></div><div>Final spread<strong id="final"></strong></div><div>Expiry<strong id="expiry"></strong></div><div>Contracts<strong id="contracts"></strong></div>
+</div></section>
+<section><h2>USDC payout breakdown</h2><div class="scroll" tabindex="0" aria-label="USDC payout breakdown"><table>
+<thead><tr><th>Side</th><th>Collateral</th><th>Payout / refund</th><th>Net</th><th>Claim status</th></tr></thead>
+<tbody id="payouts"></tbody></table></div><p><small>Net excludes Solana network fees.</small></p></section>
+<section><h2>Settlement price inputs</h2>
+<p>The market account stores the submitted spread. It does not record the Upbit KRW prices, Coinbase USD prices, or USD/KRW rate used at settlement, so those inputs cannot be reconstructed from the round.</p>
+<p><small>The spread is the first asset’s Korean premium minus the second’s. For each asset, premium is 100 × (KRW price ÷ (USD price × USD/KRW) − 1).</small></p></section>
+<section><h2>On-chain proof</h2><p id="proof" role="status"></p><p><a id="market-link" target="_blank" rel="noopener">View market account on Solana Explorer ↗</a></p>
+<form id="verify" class="controls" hidden><label>Settlement signature<input id="signature" autocomplete="off" spellcheck="false" required></label><button>Verify signature</button></form>
+<p><a id="share">Share this replay</a></p></section>
+</div>
+</main>
+<script src="/deploy-web3.js"></script>
+<script type="module" src="/settlement-replay.js"></script>
+</html>
