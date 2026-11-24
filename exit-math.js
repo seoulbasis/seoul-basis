@@ -1,0 +1,6 @@
+// Program-equivalent USDC base units and centi-percentage-point settlement ticks.
+export function cash(text) {if(!/^\d+(\.\d{1,6})?$/.test(String(text)))throw Error('Enter a non-negative USDC amount with at most six decimals.');const [a,b='']=String(text).split('.');const n=BigInt(a)*1000000n+BigInt(b.padEnd(6,'0'));if(n>1000000000000n)throw Error('Amount exceeds the planner limit.');return n;}
+export function payout(strike,contracts,long){if(!Number.isInteger(strike)||Math.abs(strike)>500||!Number.isInteger(contracts)||contracts<1||contracts>10000)throw Error('Invalid market terms');return BigInt(500+(long?strike:-strike))*BigInt(contracts)*100000n;}
+export function targetTick(strike,contracts,long,cost,target){const step=BigInt(contracts)*100000n;const ticks=Number((cost+target+step-1n)/step);const tick=strike+(long?ticks:-ticks);return Math.abs(tick)>500?null:tick;}
+export function stateMode(m,now){if(m.settled)return 'settled';if(now>=m.expiry+86400||now>=m.expiry&&m.funded!==3)return 'refund';if(now>=m.expiry)return 'awaiting';return m.funded===3?'matched':'unmatched';}
+export function liability(m){let total=0n;for(const long of [true,false]){const bit=long?1:2;if((m.funded&bit)&&!(m.claimed&bit))total+=payout(m.settled?m.final:m.strike,m.contracts,long);}return total;}
