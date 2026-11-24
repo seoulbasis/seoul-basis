@@ -1,0 +1,1465 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seoul Basis — Korea Premium Terminal</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f8f1e4;
+  --panel: #fffaf0;
+  --line: #d9c9ae;
+  --ink: #2c2321;
+  --mute: #68564b;
+  --accent: #7e3041;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box }
+html { scroll-behavior: smooth }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, sans-serif }
+header { border-bottom: 1px solid var(--line); background: #f4e9d6 }
+.shell { width: min(1376px, calc(100% - clamp(28px, 7vw, 96px))); margin: auto }
+.navbar { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 20px }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 750; letter-spacing: -.025em }
+.mark { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #b78379; border-radius: 9px; background: #eedac5; color: var(--accent); font-size: 19px }
+nav { display: flex; gap: 27px; color: var(--mute) }
+a { color: inherit; text-decoration: none }
+.venue { margin-top: 34px }
+.venue .ticker { margin-top: 14px }
+a:hover, .accent { color: var(--accent) }
+small, .mono, output { font-family: var(--mono) }
+small, .muted { color: var(--mute) }
+.hero { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 40px 0 24px }
+h1 { margin: 0; font-size: clamp(36px, 5vw, 57px); line-height: 1.05; letter-spacing: -.05em }
+h2 { margin: 0; font-size: 20px; letter-spacing: -.025em }
+p { margin: 6px 0 0 }
+.badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 20px; white-space: nowrap }
+.badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor }
+.badge[data-state=live] { color: var(--accent) }
+.ticker, .desk { display: grid; gap: 12px }
+.ticker { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px }
+.ticker > div, .panel { border: 1px solid var(--line); background: var(--panel); border-radius: 14px; padding: 18px }
+.ticker > div:first-child { background: linear-gradient(120deg, #f6e7cc, var(--panel) 78%); border-color: #cfb790 }
+.value { font: clamp(18px, 3vw, 32px)/1.25 var(--mono); margin-top: 7px; font-variant-numeric: tabular-nums }
+.quote { font: 12px var(--mono); overflow-wrap: anywhere }
+.desk { grid-template-columns: minmax(0, 2.1fr) minmax(295px, 1fr); align-items: start }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 15px }
+.toolbar { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 3px }
+.toolbar button { border: 0; background: transparent; border-radius: 6px; color: var(--mute); font: 13px var(--mono); padding: 8px 12px; cursor: pointer }
+.toolbar button[aria-pressed=true] { background: #f0d9d7; color: var(--accent) }
+.trade .toolbar { margin: 14px 0 }
+.trade .toolbar button { flex: 1 }
+canvas { display: block; width: 100%; height: 320px; background: #fbf3e4; border-radius: 9px; cursor: crosshair }
+#cursor { display: block; min-height: 18px; margin-top: 10px }
+.inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+label { display: block; font-size: 13px; color: var(--mute) }
+input { width: 100%; margin-top: 5px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); padding: 9px; font: 14px var(--mono); accent-color: var(--accent) }
+input[type=range] { padding: 0; margin: 8px 0 0 }
+.slider { margin: 13px 0 }
+.slider span { float: right; font-family: var(--mono); color: var(--ink) }
+.totals { margin: 12px 0; padding: 9px 12px; background: #fbf3e4; border-radius: 8px }
+.totals div { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0 }
+.totals span { color: var(--mute); font: 13px/1.5 Inter, system-ui, sans-serif }
+.totals b { font-weight: 500; text-align: right }
+#net { color: var(--accent) }
+details { border-top: 1px solid var(--line); padding: 14px 0 }
+summary { cursor: pointer }
+.method { margin: 30px 0 }
+.method h2 { margin-bottom: 12px }
+footer { padding-bottom: 24px }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px }
+ .hero {
+  position: relative; min-height: 340px; padding: 30px 24px; display: flex;
+  flex-direction: column; align-items: start; justify-content: center;
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  background: #f4e8d1 linear-gradient(90deg, #f8edda 0%, #f8eddae6 32%, #f8edda00 70%), url('/seoul-engraving.jpg') 71% center / cover no-repeat;
+}
+.hero h1 { font: 700 clamp(44px, 5vw, 78px)/.9 "Cormorant Garamond", Georgia, serif; color: #54202a; max-width: 4.5em; margin-block: 14px }
+.hero p { max-width: 23em }
+.won-label { font: 11px var(--mono); letter-spacing: .13em; color: #732e3d }
+.market-top { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.25fr); gap: 12px; margin: 25px 0 12px }
+.market-top .panel { min-width: 0 }
+.market-top canvas { height: 245px }
+.desk { grid-template-columns: minmax(0,.85fr) minmax(0,1.25fr); align-items: stretch }
+.desk .ticker { margin: 0; grid-template-columns: repeat(2, minmax(0,1fr)) }
+.desk .ticker > div:first-child { grid-column: 1 / -1 }
+@media(max-width: 980px) { .navbar nav { gap: 12px } }
+.desk .ticker > div { padding: 12px }
+.desk .ticker .value { font-size: clamp(16px, 1.65vw, 25px) }
+@keyframes quote-update { from { background-color: #e4c68d; } to { background-color: transparent; } }
+.value[data-updated=true] { animation: quote-update .85s ease-out }
+@media(prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto }
+  .value[data-updated=true] { animation: none }
+}
+@media(max-width: 740px) {
+  .desk { grid-template-columns: 1fr }
+  .market-top { grid-template-columns: 1fr }
+  .hero { min-height: 245px }
+  .hero { align-items: start; flex-direction: column; padding-top: 24px }
+  .ticker { grid-template-columns: repeat(2,minmax(0,1fr)) }
+  .ticker > div:first-child { grid-column: 1 / -1 }
+  .ticker > div, .panel { padding: 12px }
+  nav { gap: 12px }
+  canvas { height: 235px }
+}
+/* The upper market surface follows the Seoul Exchange concept. */
+.exchange { margin-top: 12px; padding: 0 12px 12px; border: 1px solid #c8a98c; border-radius: 5px;
+  background: #f3e4ce url('/seoul-engraving.jpg') center top / 100% auto no-repeat; }
+.exchange-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 5px; border-bottom:1px solid #c8a98c }
+.exchange-head strong { color:#54202a; font:700 24px Georgia,serif }
+.exchange-head small { letter-spacing:.1em }
+.exchange .market-top { margin: 0 0 6px; gap: 7px; grid-template-columns: 42% minmax(0,1fr); }
+.exchange .hero { min-height: 270px; border:0; border-radius:0; padding:16px 12px;
+  background:linear-gradient(90deg,#f7ebd9f5 12%,#f7ebd977 62%,transparent),url('/seoul-engraving.jpg') 73% center / cover; }
+.exchange .hero h1 { font-size:clamp(42px,5.7vw,82px); margin:8px 0 12px }
+.exchange .hero .badge { margin-top:12px; padding:4px 8px; background:#fff7e5dd }
+.exchange .panel,.exchange .ticker > div,.exchange .ticket-expiry { border-radius:6px; padding:10px; background:#fff8eced }
+.exchange .panel-head { margin-bottom:6px }
+.exchange .panel-head h2 { font-size:17px }
+.exchange canvas { height: 205px; border-radius: 2px; background:#faf1e2 }
+.exchange .desk { gap:6px; grid-template-columns:minmax(0,1.65fr) minmax(0,1fr) minmax(128px,.42fr); }
+.exchange .desk .ticker { grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px }
+.exchange .desk .ticker > div:first-child { grid-column:auto; }
+.exchange .desk .ticker .value { font-size:clamp(13px,1.55vw,24px); color:#136549 }
+.exchange .trade .toolbar { margin:0; padding:2px }
+.ticket-top { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:5px; margin-bottom:5px }
+.exchange .trade .inputs { gap:5px }
+.exchange .trade input { padding:4px; margin-top:1px }
+.exchange .trade .slider { margin:4px 0 }
+.exchange .trade input[type=range] { padding:0 }
+.exchange .trade .totals { padding:4px; margin:4px 0 0; display:flex; flex-wrap:wrap; gap:4px 10px }
+.exchange .trade .totals div { gap:4px; padding:0; font-size:11px }
+.exchange .trade .totals span { font-size:11px }
+.ticket-expiry { border:1px solid var(--line) }
+.ticket-expiry h2 { font-size:15px }
+.ticket-expiry p { font-size:12px }
+@media(max-width: 950px) {
+  .exchange .desk { grid-template-columns:minmax(0,1fr) minmax(125px,.3fr) }
+  .exchange .desk .ticker { grid-column:1 / -1 }
+}
+@media(max-width: 640px) {
+  .exchange .market-top,.exchange .desk { grid-template-columns:minmax(0,1fr) }
+  .exchange .desk .ticker { grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .exchange .hero { min-height:220px }
+  .exchange-head small { display:none }
+}
+
+.exchange-head { background: transparent; padding: 8px 10px; justify-content: start; flex-wrap: wrap }
+.exchange-brand { display:flex; align-items:center; gap:9px; flex:none; color:#54202a }
+.wordmark { font: bold 29px/.95 Georgia,serif; letter-spacing:-.065em; white-space:nowrap }
+.exchange-seal { display:grid; place-items:center; width:34px; height:34px; border-radius:50%; border:3px double #874a48; outline:1px dotted #874a48; outline-offset:-6px; font:bold 18px Georgia,serif }
+.edition { display:grid; gap:1px; border-left:1px solid #c8a98c; padding-left:12px; color:#54202a }
+.edition b { font:bold 13px Georgia,serif; letter-spacing:.055em }
+.exchange-head .edition small { display:block; font:9px var(--mono); letter-spacing:.04em }
+.exchange-head nav { margin-inline:auto; gap:4px; color:#54202a; font-size:12px; font-weight:650 }
+.exchange-head nav a { padding:4px 10px; border-radius:4px }
+.exchange-head .market-link { background:#54202a; color:#fff5e4 }
+.seoul-time { font:10px var(--mono); white-space:nowrap; color:#68564b }
+.exchange .hero { padding-inline:clamp(14px,4.7vw,74px); justify-content:center; min-height:255px }
+.exchange .hero h1 { font-family:Georgia,serif; letter-spacing:-.075em; font-size:clamp(40px,5.3vw,75px); line-height:.86 }
+.exchange .hero-tagline { max-width: 30ch; font: 500 17px/1.35 Georgia, serif; color: #54202a }
+.exchange .market-top { align-items:stretch; grid-template-columns:minmax(0,42fr) minmax(0,58fr); padding-block:4px; border-bottom:1px solid #c8a98c }
+.exchange .market-top .panel { align-self:stretch; padding:8px 10px }
+.exchange .market-top canvas { height:195px }
+.exchange .panel-head h2 small { font:inherit; font-size:.72em; font-weight:500 }
+.exchange .desk .ticker > div { padding:8px; min-width:0 }
+@media(max-width: 760px) {
+  .exchange-head nav { order:3; margin:0; width:100%; flex-wrap:wrap }
+  .seoul-time { margin-left:auto }
+}
+@media(max-width: 640px) {
+  .exchange .market-top { grid-template-columns:minmax(0,1fr) }
+  .seoul-time { display:none }
+  .wordmark { font-size:24px }
+}
+
+.shell { width:min(1700px, calc(100% - 32px)) }
+.exchange {
+  margin-top: 10px; padding: 0 13px 10px;
+  background: #f6e9d8 url('/seoul-engraving.jpg') left top / cover no-repeat;
+}
+.exchange-head { padding: 8px clamp(12px,5.5vw,100px); gap: 15px; background: #fffbf3dc; flex-wrap: nowrap }
+.exchange-seal { width: 34px; height: 34px; display:block; border: 0; outline: 0; mix-blend-mode: multiply; object-fit: contain }
+.wordmark { font-family: Georgia, serif; font-size: clamp(23px, 2.15vw, 35px) }
+.edition { flex: none }
+.exchange-head nav { flex-wrap: nowrap; gap: 3px; width: auto; order: initial }
+.exchange-head nav a { white-space: nowrap; padding-inline: 7px }
+.exchange .hero { background: linear-gradient(90deg,#f8eddaef 0%,#f8edda80 42%,transparent 78%); min-height: 238px; padding-block: 12px }
+.exchange .hero h1 { font-size:clamp(46px,4.3vw,72px) }
+.exchange .hero .badge { margin-top: 8px; font-size: 10px }
+.exchange .hero-tagline { margin-top: 8px; font-size: 16px }
+.exchange .market-top { gap: 5px; grid-template-columns:minmax(0,42fr) minmax(0,58fr) }
+.exchange .market-top canvas { height: 172px }
+.exchange .hero { background: linear-gradient(90deg,#f8edda 0%,#f8eddaee 29%,#f8edda00 72%), url('/seoul-engraving.jpg') right center / cover no-repeat }
+.exchange .panel-head { align-items: start }
+.exchange .panel-head .toolbar { max-width: 100%; flex-wrap: wrap }
+.exchange-head,.exchange-head nav,.ticket-tabs { min-width: 0 }
+.exchange .trade input { min-width: 0 }
+#chart-reading { color:#145d43; font-weight:700; font-size: 14px }
+.exchange .desk { grid-template-columns:minmax(0,1.65fr) minmax(0,1fr) minmax(130px,.4fr) }
+.exchange .desk .ticker { grid-column:auto }
+.quote-card { display:grid; grid-template-columns:auto minmax(0,1fr); align-content:center; column-gap:6px }
+.quote-card small,.quote-card .value,.quote-card .quote { grid-column:2; }
+.quote-card small { font:bold 12px/1.2 Inter,system-ui,sans-serif; color:#292522 }
+.asset-icon { grid-column:1; grid-row:1 / 4; align-self:start; display:grid; place-content:center; width:clamp(18px,2vw,30px); height:clamp(18px,2vw,30px); border-radius:50%; font-size:16px; flex:none }
+.sol-icon { background:#101323; gap:2px }
+.sol-icon i { width:12px; height:2px; transform:skew(-25deg); background:linear-gradient(90deg,#8455ff,#25ecb9) }
+.btc-icon { background:#ec8a26; color:white }
+.eth-icon { background:#48547e; color:white }
+.xrp-icon { background:#22252d; color:white }
+.doge-icon { background:#826521; color:white }
+.flag-icon,.spread-icon { color:#7e3041 }
+.exchange .desk .ticker .value { font: bold clamp(13px,1.36vw,23px)/1.17 Inter,system-ui,sans-serif; white-space:nowrap }
+.exchange .desk .ticker .quote { font-size:10px }
+.ticket-tabs { display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:5px }
+.ticket-tabs a { padding:4px 8px; border-radius:4px 4px 0 0; background:#f4e7d6; font-size:11px; font-weight:bold }
+.ticket-tabs a:first-child { background:#54202a; color:#fff9ed }
+.ticket-main { display:flex; gap:6px; align-items:end }
+.ticket-main .inputs { flex:1; min-width:0 }
+.exchange .trade .toolbar { flex:0 0 auto; border:0; background:transparent; gap:4px }
+#side button { background:#7e3041; color:white; padding:6px; font-size:11px; border:1px solid transparent }
+#side button:first-child { background:#11634a }
+#side button[aria-pressed=true] { border-color:#ebc996; box-shadow:0 0 0 1px #7c5c46 }
+@media(max-width: 1120px) {
+  .exchange-head { padding-inline:10px; flex-wrap:wrap }
+  .exchange .desk { grid-template-columns:minmax(0,1fr) minmax(130px,.4fr) }
+  .exchange .desk .ticker { grid-column:1 / -1 }
+}
+@media(max-width: 700px) {
+  .shell { width:calc(100% - 16px) }
+  .exchange { padding:0 7px 7px }
+  .exchange-head { padding-inline:5px; gap:8px }
+  .exchange-head nav { order:3; width:100%; margin:0; overflow-x:auto; padding-bottom:3px }
+  .exchange-head nav a { padding:7px 8px }
+  .exchange .market-top,.exchange .desk { grid-template-columns:minmax(0,1fr) }
+  .exchange .desk .ticker { grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .exchange .hero { min-height:206px; background:linear-gradient(90deg,#f8eddaee,#f8edda66),url('/seoul-engraving.jpg') 70% center / cover }
+  .exchange .market-top canvas { height:190px }
+  .exchange .desk .ticker .value { font-size:19px }
+  .ticket-main { align-items:stretch; flex-direction:column }
+  #side button { min-height:38px }
+}
+
+/* Research, positions and settlement share the exchange's editorial typography. */
+.market-research {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 16px;
+  margin: 20px 0 0;
+  align-items: start;
+}
+.market-research .venue { grid-column: 1 / -1 }
+#positions { grid-column: 2; grid-row: 2 }
+#settlement { grid-column: 1; grid-row: 2 }
+.venue, .method {
+  min-width: 0;
+  margin: 0;
+  scroll-margin-top: 16px;
+}
+.venue > .panel, .method {
+  padding: clamp(15px, 2.1vw, 25px);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fffaf0;
+}
+.venue h2, .method h2 {
+  color: #54202a;
+  font: bold clamp(23px, 2.5vw, 30px)/1.1 Georgia, serif;
+  letter-spacing: -.035em;
+  margin: 0 0 8px;
+}
+.venue p, .method p { font-size: 14px; max-width: 72ch }
+.venue .ticker { gap: 7px; margin: 14px 0 9px }
+.venue .ticker > div { padding: 11px 13px; border-radius: 5px }
+.venue .ticker small { font-size: 10px; letter-spacing: .055em }
+.venue .ticker .value { font: bold clamp(22px, 2.2vw, 34px)/1.1 Georgia, serif; font-variant-numeric: tabular-nums; margin-top: 6px }
+.venue .ticker .quote { font-size: 14px; line-height: 1.5 }
+.venue details, .method details { padding: 10px 0; font-size: 14px }
+.venue summary, .method summary { color: #54202a; font-weight: 650 }
+.venue details:last-child, .method details:last-child { padding-bottom: 0 }
+#research-status { display: inline-block; margin-bottom: 7px; font-size: 11px }
+#settlement-result { overflow-wrap: anywhere }
+footer { padding-top: 22px }
+@media (max-width: 720px) {
+  .market-research { grid-template-columns: minmax(0, 1fr) }
+  #positions, #settlement { grid-column: 1; grid-row: auto }
+}
+@media (max-width: 560px) {
+  .venue .ticker { grid-template-columns: repeat(2,minmax(0,1fr)) }
+  .venue .ticker > div:first-child { grid-column: auto }
+  .venue .ticker > div:last-child { grid-column: 1 / -1 }
+  .venue .ticker > div { padding: 9px 10px; min-width: 0 }
+}
+
+.route-title { display: none }
+html[data-page] .route-title { margin: 0; color: #54202a; font: bold clamp(28px, 4vw, 44px)/1.12 Georgia, serif }
+html[data-page="settlement"] .market-top,
+html[data-page="trade"] .market-top .hero,
+html[data-page] #positions,
+html[data-page="trade"] .market-research,
+html[data-page="settlement"] .desk { display: none }
+html[data-page="trade"] .trade-title,
+html[data-page="settlement"] .settlement-title { display: block }
+html[data-page="trade"] .trade-title { padding: 24px 16px 12px }
+html[data-page="trade"] .market-top { grid-template-columns: minmax(0, 1fr) }
+html[data-page="trade"] .desk > .ticker { grid-column: 1 / -1 }
+html[data-page="trade"] .desk { gap: 14px; padding-bottom: 20px }
+html[data-page="trade"] .ticket-main { margin-top: 14px }
+html[data-page="trade"] .totals { margin-top: 14px }
+html[data-page="trade"] .desk { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) }
+html[data-page="settlement"] .market-research { grid-template-columns: minmax(0, 1fr) }
+html[data-page="settlement"] #settlement { grid-row: auto }
+@media (max-width: 720px) {
+  html[data-page="trade"] .desk { grid-template-columns: minmax(0, 1fr) }
+}
+.exchange-head nav a[aria-current="page"] { background: #54202a; color: #fffaf0 }
+html[data-page] .exchange-head nav .market-link:not([aria-current]) { background: transparent; color: inherit }
+
+.wallet-control { display: flex; flex-direction: column; align-items: flex-start; gap: 2px }
+.wallet-control button, .live-trade button { background: #54202a; color: #fffaf0; border: 0; border-radius: 5px; padding: 8px 12px; cursor: pointer; font: inherit }
+.wallet-control button { white-space: nowrap }
+.wallet-control small { overflow-wrap: anywhere; max-width: 28ch }
+html[data-page="trade"] .desk > .trade,
+html[data-page="trade"] .desk > .ticket-expiry { display: none }
+html[data-page="trade"] .live-trade { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; padding: 0 16px 16px }
+.live-trade .panel { padding: 16px; min-width: 0 }
+.live-trade label { display: block; margin: 8px 0 }
+.live-trade #market { width: 100%; box-sizing: border-box }
+.live-trade pre { white-space: pre-wrap; overflow-wrap: anywhere }
+.live-trade [data-action="long"] { background: #176345 }
+.live-trade button:disabled { opacity: .55 }
+#trade-status { grid-column: 1 / -1; margin: 0 }
+@media(max-width:720px) { html[data-page="trade"] .live-trade { grid-template-columns: minmax(0, 1fr) } }
+
+.chart-select { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .85rem }
+.chart-select select { color: #54202a; background: #fffaf0; border: 1px solid #c9ae93; border-radius: 5px; padding: 5px 8px; font: inherit }
+.trade-card { display: flex; min-height: 100%; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px }
+.trade-card h2, .trade-card p { margin: 3px 0 }
+.trade-card small { color: #702c39; font-weight: 700; letter-spacing: .05em }
+.trade-card a { color: #fffaf0; background: #54202a; border-radius: 5px; padding: 8px 12px; white-space: nowrap }
+
+.chart-breakdown { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 6px 0; font-size: .8rem; }
+.scout { margin: 20px 0; padding: clamp(16px, 3vw, 28px); color: #fff4e3; background: linear-gradient(125deg, #351820, #672839); }
+.scout summary { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; cursor: pointer; list-style: none; }
+.scout summary::-webkit-details-marker { display: none; }
+.scout summary strong { font: 700 1.65rem Georgia, serif; }
+.scout summary small { display: block; margin-top: 3px; color: #f2d8cb; }
+.scout-launch { margin-inline-start: auto; background: #f5dfb9; color: #351820; border-radius: 6px; padding: 9px 14px; font-weight: 700; }
+.scout[open] .scout-launch .scout-open, .scout:not([open]) .scout-close { display: none; }
+.scout-body { margin-top: 16px; padding: 16px; background: #fff8eb; color: #351820; border-radius: 8px; }
+.scout-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.scout-presets button { background: #f5e7d2; color: #54202a; border: 1px solid #ba9c82; border-radius: 99px; padding: 6px 11px; }
+.scout-orb { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: #f5dfb9; color: #54202a; font-size: 1.3rem; }
+.scout :focus-visible { outline: 2px solid #b47835; outline-offset: 4px; }
+html[data-page] .scout { display: none; }
+.scout form { display: flex; gap: 8px; flex-wrap: wrap; }
+.scout label { flex-basis: 100%; }
+.scout input { flex: 1 1 260px; min-width: 0; }
+.scout li { margin: 10px 0; overflow-wrap: anywhere; }
+.scout li button, .scout li a { margin-inline-start: 10px; }
+.spread-replay { margin-top: 12px; padding-top: 10px; border-top: 1px solid #d9c9ae; }
+.replay-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.replay-controls input { flex: 1 1 120px; min-width: 0; accent-color: #7e3041; }
+#replay-context { display: block; margin-top: 6px; }
+#spread-composer { margin-top: 16px; padding: 12px; border: 1px solid #d9c9ae; border-radius: 8px; }
+#composer-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; margin-bottom: 12px; }
+#composer-form label { display: grid; gap: 4px; }
+#composer-form input, #composer-form select { width: 100%; min-width: 0; }
+.spread-drivers { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.spread-drivers div { padding: 10px; background: #f5e7d2; border-radius: 6px; }
+.stress-test { margin:14px 0 22px;padding:16px;background:#f8efdf;border:1px solid #d9c9ae;border-radius:8px; }
+.stress-test summary {font:700 1.25rem Georgia,serif;cursor:pointer;}
+.stress-test small {font:400 .82rem/1.5 system-ui;}
+.stress-inputs,.stress-comparison {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.stress-inputs label:last-child {grid-column:1/-1;}
+.stress-inputs input {width:100%;box-sizing:border-box;}
+.stress-comparison {margin:14px 0;}
+.stress-outcome {padding:14px;background:#fffaf0;border:1px solid #d9c9ae;border-radius:6px;}
+.stress-outcome h3 {margin:0 0 12px;font-family:Georgia,serif;}
+.stress-outcome dl {margin:0;}.stress-outcome dt {font-size:.8rem;color:#6b594f;}.stress-outcome dd {margin:2px 0 10px;font-variant-numeric:tabular-nums;font-weight:700;}
+@media(max-width:480px){.stress-inputs,.stress-comparison{grid-template-columns:1fr;}.stress-test{padding:12px;}}
+.fingerprint-panel summary { cursor:pointer; font-weight:700; }
+.fingerprint-panel summary small { font-weight:400; margin-left:8px; }
+.fingerprint-match { padding:12px 0; border-bottom:1px solid #d9c9ae; display:grid; gap:5px; }
+.fingerprint-match button { justify-self:start; }
+.fingerprint-panel small { line-height:1.6; }
+.spread-drivers dd { margin: 4px 0 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.exit-terms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.exit-terms>div{padding:12px;background:#fffaf0;border:1px solid #d9c9ae;border-radius:5px;min-width:0}.exit-terms dt{font-size:.85rem;color:#6b594f}.exit-terms dd{margin:5px 0 0;font-weight:650;overflow-wrap:anywhere}.exit-table{overflow-x:auto}.exit-table table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.exit-table th,.exit-table td{text-align:left;padding:10px;border-bottom:1px solid #d9c9ae;font-size:.9rem}#exit-source,#exit-position{overflow-wrap:anywhere}@media(max-width:520px){.exit-terms{grid-template-columns:1fr}}
+</style>
+<script>
+const pagePath = location.pathname;
+if (pagePath === '/trade' || pagePath === '/settlement') {
+  document.documentElement.dataset.page = pagePath.slice(1);
+  document.title = (pagePath === '/trade' ? 'Trade' : 'Settlement') + ' | Seoul Basis';
+}
+</script>
+<main class="shell">
+<div class="exchange">
+<header class="exchange-head">
+  <a class="exchange-brand" href="/" aria-label="Seoul Basis home">
+    <img class="exchange-seal" src="/seoul-seal.svg" width="34" height="34" alt="">
+    <span class="wordmark">Seoul Basis</span>
+  </a>
+  <div class="edition"><b>SEOUL EXCHANGE</b><small>KRW CRYPTO PREMIUM MARKET</small></div>
+  <nav aria-label="Main navigation">
+    <a class="market-link" href="/">Markets</a>
+    <a href="/trade">Trade</a>
+    <a href="/launchpad">Launchpad</a>
+    <a href="/#positions">Positions</a>
+    <a href="/settlement">Settlement</a><a href="/settlement-replay">Replay</a>
+    <a href="/#terminal">Analytics</a>
+    <a href="/#research">Research</a>
+  </nav>
+  <div class="wallet-control"><button id="connect-wallet" type="button">Connect Phantom</button><small id="wallet-address" aria-live="polite"></small></div>
+  <time class="seoul-time" id="seoul-time"></time>
+</header>
+<h1 class="route-title trade-title" id="trade-title">Trade the SOL–BTC spread</h1>
+<section class="market-top" id="terminal"><div class="hero">
+  <div><span class="won-label">SEOUL EXCHANGE</span><h1>Korean<br>Premium</h1><p class="hero-tagline">The Korean crypto premium. Trade the spread.</p></div>
+  <small class="badge" id="status" role="status">Connecting to price feeds…</small>
+</div>
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2 id="chart-title">SOL − BTC Spread</h2><small id="chart-reading">Waiting for a spread reading</small></div>
+      <label class="chart-select">Chart series <select id="series">
+        <option value="Spread">SOL − BTC</option>
+        <option value="SOL-ETH">SOL − ETH</option>
+        <option value="SOL-XRP">SOL − XRP</option>
+        <option value="SOL-DOGE">SOL − DOGE</option>
+        <option value="ETH-BTC">ETH − BTC</option>
+  <option value="XRP-BTC">XRP − BTC</option>
+  <option value="DOGE-BTC">DOGE − BTC</option>
+</select></label>
+    </div>
+    <div class="chart-breakdown"><label><input type="checkbox" id="show-breakdown"> Show both asset premiums</label><small id="breakdown-legend"></small></div>
+    <canvas id="chart" role="img" aria-label="Recent live premium readings"></canvas>
+    <small id="cursor">Waiting for first reading…</small>
+    <div class="spread-replay">
+      <div class="replay-controls">
+        <label for="replay-point">Spread Replay</label>
+        <input id="replay-point" type="range" min="0" max="0" value="0" disabled>
+        <button id="replay-live" type="button" disabled>Back to latest</button>
+      </div>
+      <small id="replay-context">Collecting readings in this browser…</small>
+      <details class="spread-replay">
+        <summary>Spread Drivers</summary>
+        <p id="driver-period">Collecting fresh price and FX readings…</p>
+        <dl class="spread-drivers">
+          <div><dt>Korean prices</dt><dd id="driver-krw">—</dd></div>
+          <div><dt>Global prices</dt><dd id="driver-usd">—</dd></div>
+          <div><dt>USD/KRW</dt><dd id="driver-fx">—</dd></div>
+          <div><dt>Total spread move</dt><dd id="driver-total">—</dd></div>
+        </dl>
+      </details>
+
+      <details class="spread-replay" id="spread-session-map">
+        <summary>Spread Session Map</summary>
+        <div class="replay-controls"><label for="session-day">Days</label><select id="session-day"><option value="weekday">Weekdays</option><option value="weekend">Weekends</option></select></div>
+        <p id="session-context" role="status"></p>
+        <div class="exit-table" tabindex="0" aria-label="Session comparisons"><table>
+          <thead><tr><th scope="col">Session</th><th scope="col">Valid moves</th><th scope="col">Typical move</th><th scope="col">Wider / narrower</th><th scope="col">Excluded</th><th scope="col">Latest width percentile</th><th scope="col">Replay</th></tr></thead>
+          <tbody id="session-rows"></tbody>
+        </table></div>
+        <small>Sessions are 09:00–17:00 in each city’s local time, including daylight saving. Sessions can overlap. Widening means the spread moved farther from zero. Stats use adjacent readings from this browser and need 10 valid moves per session. Gaps over 45 seconds and missing price or FX inputs are excluded. The latest width percentile compares the newest reading with earlier readings in the same session and day filter.</small>
+      </details>
+
+      <details class="spread-replay fingerprint-panel" id="spread-fingerprints">
+        <summary>Spread Fingerprints <small>Historical setup matches</small></summary>
+        <p>Find earlier setups with a similar spread, 10-minute momentum, and volatility.</p>
+        <div class="replay-controls"><label for="fingerprint-horizon">Outcome window</label><select id="fingerprint-horizon"><option value="900000">15 minutes</option><option value="3600000" selected>1 hour</option><option value="14400000">4 hours</option><option value="86400000">1 day</option></select></div>
+        <p id="fingerprint-status" role="status"></p>
+        <dl class="spread-drivers"><div><dt>Matched setups</dt><dd id="fp-count">—</dd></div><div><dt>Narrowed / widened</dt><dd id="fp-directions">—</dd></div><div><dt>Median move</dt><dd id="fp-median">—</dd></div><div><dt>Observed range</dt><dd id="fp-range">—</dd></div></dl>
+        <div id="fingerprint-matches"></div>
+        <small>Recorded in this browser only. Matches are separated by the outcome window; gaps over 45 seconds are excluded. Historical outcomes are not forecasts. Driver values attribute each matched move in pp.</small>
+      </details>
+    </div>
+  </div>
+</section>
+<section class="desk">
+<div class="ticker" aria-label="Market readings">
+  <div class="quote-card"><span class="asset-icon sol-icon" id="base-icon" aria-hidden="true"><i></i><i></i><i></i></span><small id="base-label">SOL Premium</small><div class="value" id="SOL">—</div><p class="quote muted" id="solQuote"></p></div>
+  <div class="quote-card"><span class="asset-icon btc-icon" id="benchmark-icon" aria-hidden="true">₿</span><small id="benchmark-label">BTC Premium</small><div class="value" id="BTC">—</div><p class="quote muted" id="btcQuote"></p></div>
+  <div class="quote-card"><span class="asset-icon spread-icon" aria-hidden="true">↕</span><small id="spread-label">SOL − BTC Spread</small><div class="value accent" id="Spread">—</div></div>
+<div class="quote-card"><span class="asset-icon flag-icon" aria-hidden="true">🇺🇸</span><small>USD / KRW</small><div class="value" id="fx">—</div></div>
+</div>
+  <div class="panel trade" id="trade"><div class="trade-card">
+    <div><small>SOLANA MAINNET</small><h2 id="trade-pair-title">SOL − BTC Spread</h2><p>Long or short the premium spread with USDC collateral.</p></div>
+    <a id="trade-pair-link" href="/trade">Trade SOL–BTC ↗</a>
+    </div><div hidden>
+    <div class="ticket-tabs"><a href="/trade">Trade (Spread)</a><a href="/#positions">Positions</a><a href="/settlement">Settlement</a></div>
+    <div class="ticket-main"><div class="inputs">
+      <label>Entry (pp)<input id="entry" type="number" step=".01" min="-5" max="5" value="0" required></label>
+      <label>Contracts<input id="units" type="number" min="1" max="10000" step="1" value="1" required></label>
+    </div>
+    <div class="toolbar" id="side" aria-label="Position direction"><button aria-pressed="true">Long</button><button aria-pressed="false">Short</button></div></div>
+    <label class="slider">Settlement spread <span id="settle-value"></span><input id="settle" type="range" step=".01" min="-5" max="5" value="0"></label>
+    <output class="totals" id="payout" aria-live="polite">
+      <div><span>Collateral</span><b id="collateral"></b></div>
+      <div><span>Payout</span><b id="receive"></b></div>
+      <div><span>Profit / loss</span><b id="net"></b></div>
+    </output>
+    </div>
+  </div>
+  <aside class="ticket-expiry"><h2>Settlement</h2><p class="mono" id="ticket-expiry">—</p><p class="muted">Next Friday · 16:00 UTC</p><a href="/settlement">Methodology ↗</a></aside>
+</section>
+<div class="live-trade" hidden>
+<section class="panel">
+<h2>Trade or claim</h2>
+<section id="round-depth" class="stress-test" aria-labelledby="round-depth-title">
+<h3 id="round-depth-title">Round Depth</h3>
+<p data-depth="status" role="status">Inspect a market to see its on-chain funding.</p>
+<div data-depth="details" hidden>
+<dl class="exit-terms">
+<div><dt>Long collateral</dt><dd data-depth="long"></dd><small data-depth="long-status"></small></div>
+<div><dt>Short collateral</dt><dd data-depth="short"></dd><small data-depth="short-status"></small></div>
+<div><dt>Current vault balance</dt><dd data-depth="balance"></dd><a data-depth="vault" target="_blank" rel="noopener">Inspect vault ↗</a></div>
+</dl>
+<p data-depth="expiry"></p>
+<p><small data-depth="source"></small></p>
+</div>
+<button data-depth="refresh" type="button">Refresh funding</button>
+</section>
+<details id="spread-exit-planner" class="stress-test" open>
+<summary>Spread Exit Planner <small>Position targets &amp; vault coverage</small></summary>
+<p id="exit-source" role="status">View a market to load verified terms and funding.</p>
+<button id="exit-refresh" type="button">Refresh market &amp; funding</button>
+<div class="stress-inputs"><label>Position side<select id="exit-side"><option value="long">Long spread</option><option value="short">Short spread</option></select></label><label>Estimated additional costs (USDC)<input id="exit-cost" type="number" min="0" max="1000000" step="0.01" value="0"></label><label>Target net profit (USDC)<input id="exit-target" type="number" min="0" max="1000000" step="0.01" value="10"></label></div>
+<p id="exit-position"></p><p id="exit-state" role="status"></p><p id="exit-expiry" class="mono"></p>
+<dl id="exit-terms" class="exit-terms"></dl>
+<label>Settlement scenario <strong id="exit-final-label">0.00 pp</strong><input id="exit-final" type="range" min="-500" max="500" step="1" value="0" style="width:100%;accent-color:#782739"></label>
+<div class="exit-table"><table><thead><tr><th>Final spread</th><th>Settlement payout</th><th>Net after entered costs</th></tr></thead><tbody id="exit-scenarios"></tbody></table></div>
+<p><small id="exit-note">Read-only estimates. No early-close order or wallet transaction is created.</small></p>
+</details>
+<details id="spread-stress-test" class="stress-test" open>
+<summary>Spread Stress Test <small>Before you sign</small></summary>
+<p id="stress-source" role="status">Inspect a market to load its actual entry and contract size.</p>
+<div class="stress-inputs"><label>Entry spread (pp)<input id="stress-entry" type="number" min="-4.99" max="4.99" step=".01" placeholder="Market entry"></label><label>Contracts<input id="stress-contracts" type="number" min="1" max="10000" step="1" placeholder="Market size"></label><label>Additional costs per side (USDC)<input id="stress-fees" type="number" min="0" max="1000000" step=".01" value="0"></label></div>
+<label for="stress-final">Settlement spread <strong id="stress-final-label">0.00 pp</strong></label>
+<input id="stress-final" type="range" min="-5" max="5" step=".01" value="0" style="width:100%;accent-color:#782739">
+<div class="stress-presets"><button type="button" data-stress="entry">At entry</button><button type="button" data-stress="narrow">Narrow 0.5 pp</button><button type="button" data-stress="widen">Widen 0.5 pp</button><button type="button" data-stress="zero">Return to zero</button></div>
+<div class="stress-comparison" id="stress-results" aria-live="polite"></div>
+<small>Scenario estimates, not a forecast or an order. Assumes a funded, matched market and an accepted settlement. The program deducts no trading fee; optional costs above are your estimate. SOL network fees and account rent are excluded. Unmatched or timed-out markets follow refund rules.</small>
+</details>
+
+<label>Market address <input id="market" autocomplete="off"></label>
+<button data-action="inspect">View market</button>
+<a id="proof" hidden>View on Solana Explorer</a>
+<pre id="summary"></pre>
+<button data-action="long">Open long</button>
+<button data-action="short">Open short</button>
+<button data-action="claim">Claim payout or refund</button>
+<p>Each market has one long and one short. The settlement authority posts the final spread. Unmatched collateral can be reclaimed after expiry. If a matched market remains unsettled for 24 hours after expiry, either side can reclaim its collateral.</p>
+</section>
+<section class="panel">
+<details id="market-setup"><summary>Market setup and settlement</summary>
+<label>Market pair
+<select id="setup-pair">
+<option value="BTC">SOL–BTC</option>
+<option value="ETH">SOL–ETH</option>
+<option value="XRP">SOL–XRP</option>
+<option value="DOGE">SOL–DOGE</option>
+  <option value="ETH-BTC">ETH–BTC</option>
+  <option value="XRP-BTC">XRP–BTC</option>
+  <option value="DOGE-BTC">DOGE–BTC</option>
+</select></label>
+<label>Expiry in your local time <input id="expiry" type="datetime-local"></label>
+<label>Entry spread (pp) <input id="strike" type="number" min="-4.99" max="4.99" step=".01"></label>
+<label>Contracts <input id="contracts" type="number" min="1" max="10000" value="1"></label>
+<button data-action="create">Create market and USDC vault</button>
+<label>Final spread (pp) <input id="settlement" type="number" min="-5" max="5" step=".01"></label>
+<button data-action="settle">Post settlement</button>
+</details>
+</section>
+<p id="trade-status" role="status"></p></div>
+</div>
+<details class="panel scout" id="seoul-scout">
+<summary>
+<span class="scout-orb" aria-hidden="true">✦</span>
+<span><strong>Seoul Scout</strong><small>Korean premium spread alerts</small></span>
+<span class="scout-launch"><span class="scout-open">Open Scout ↗</span><span class="scout-close">Close Scout</span></span>
+</summary>
+<div class="scout-body">
+<p>Watch a Korean premium spread and see which asset moved it. Rules are saved on this device and checked while this page is open.</p>
+<div class="scout-presets" aria-label="Alert presets">
+<button type="button" data-scout-rule="SOL–BTC above +0.5 pp for 5 minutes">SOL–BTC above +0.50 pp</button>
+<button type="button" data-scout-rule="SOL–ETH below −0.25 pp for 5 minutes">SOL–ETH below −0.25 pp</button>
+</div>
+<p><strong>Scout Pro</strong> · Hold at least $20 worth of BASIS for spread change alerts, extended browser replay, and CSV export.</p>
+<button id="scout-pro-check" type="button">Check wallet access</button>
+<p id="scout-pro-status" role="status"></p>
+<div id="scout-pro-tools" hidden>
+<button id="scout-pro-preset" type="button">Watch SOL–BTC widen by 0.3 pp in 15 min</button>
+<button id="scout-pro-export" type="button">Export selected pair CSV</button>
+<details id="spread-composer">
+<summary>Spread Composer</summary>
+<p>Compare one Korean premium against a basket of two assets. Saved spreads and alerts stay in this browser.</p>
+<form id="composer-form">
+<label>Base asset <select id="composer-base"></select></label>
+<label>First basket asset <select id="composer-first"></select></label>
+<label>Second basket asset <select id="composer-second"></select></label>
+<label>First asset weight (%) <input id="composer-weight" type="number" min="1" max="99" value="50" required></label>
+<label>Alert above (pp, optional) <input id="composer-level" type="number" step="any" placeholder="0.5"></label>
+<label>Hold for (minutes) <input id="composer-hold" type="number" min="0" max="60" value="10" required></label>
+<button type="submit">Save spread</button>
+</form>
+<p id="composer-status" role="status"></p>
+<label>Saved spread <select id="composer-saved"></select></label>
+<button id="composer-remove" type="button">Remove spread</button>
+<label>Replay <input id="composer-replay" type="range" min="0" max="0" value="0"></label>
+<button id="composer-live" type="button">Back to latest</button>
+<p id="composer-reading"></p>
+<p id="composer-alert" role="status"></p>
+</details>
+</div>
+<form id="scout-form">
+<label for="scout-rule">Tell Scout what to watch</label>
+<input id="scout-rule" maxlength="200" placeholder="Alert me if SOL–BTC goes above +0.5 pp for 5 minutes" required>
+<button type="submit">Add alert</button>
+</form>
+<p id="scout-status" role="status"></p>
+<ul id="scout-rules"></ul>
+</div>
+</details>
+<div class="market-research">
+<h1 class="route-title settlement-title">Settlement</h1>
+<section class="venue" id="research">
+  <div class="panel">
+    <h2>Korean USDT Premium</h2>
+    <p class="muted">Track how much USDT costs on Korean exchanges relative to the USD/KRW reference rate.</p>
+    <div class="ticker">
+      <div><small>SPOT PREMIUM</small><div class="value accent" id="research-spot">—</div></div>
+      <div><small>ROLLING PREMIUM</small><div class="value" id="research-rolling">—</div></div>
+      <div><small>NEXT SCHEDULED EXPIRY</small><div class="value quote" id="research-expiry">—</div></div>
+    </div>
+    <p><small id="research-status" role="status">Loading premium readings…</small></p>
+    <details>
+      <summary>Recalculate the last reported settlement</summary>
+      <p class="muted" id="settlement-inputs">Waiting for settlement inputs…</p>
+      <p id="settlement-result" class="mono" role="status"></p>
+    </details>
+  </div>
+</section>
+<section class="method" id="positions"><h2>Positions</h2><p class="muted">View the market’s on-chain positions and claim eligible payouts on the <a href="/trade">Trade page</a>.</p></section>
+<section class="method" id="settlement"><h2>How settlement works</h2>
+<details open><summary>Calculate each Korean premium</summary><p>Divide the Upbit KRW price by the Coinbase USD price converted to won using the displayed daily FX reference. Subtract one and multiply by 100.</p></details>
+<details><summary>Calculate the SOL–BTC spread</summary><p>Subtract BTC’s premium from SOL’s. A SOL premium of 2% and a BTC premium of 1% gives a spread of +1 percentage point.</p></details>
+<details><summary>Calculate the USDC payout</summary><p>The market uses a −5 to +5 pp settlement band. Each contract pays 10 USDC per percentage point from the applicable end of the band. Entry collateral follows the same formula using the entry spread.</p></details></section>
+</div>
+</main><footer class="shell"><small>SEOUL BASIS · MARKET DATA AND SOLANA MAINNET TRADING</small> <a style="margin-inline-start: 12px" href="https://x.com/seoulbasis" target="_blank" rel="noopener noreferrer">X · @seoulbasis</a></footer>
+<script>
+const currentNav = document.querySelector('.exchange-head nav a[href="' + pagePath + '"]');
+currentNav?.setAttribute('aria-current', 'page');
+if (pagePath === '/settlement') document.querySelector('#research details').open = true;
+const id = name => document.getElementById(name);
+const history = [];
+let proUntil = 0;
+const hasScoutPro = () => Date.now() < proUntil;
+window.addEventListener('scout-pro-access', event => {
+  proUntil = event.detail;
+  id('scout-pro-tools').hidden = !hasScoutPro();
+  draw();
+});
+id('scout-pro-preset').onclick = () => {
+  id('scout-rule').value = 'SOL–BTC widens by 0.3 pp in 15 minutes';
+  id('scout-rule').focus();
+};
+id('scout-pro-export').onclick = () => {
+  if (!hasScoutPro()) return;
+  const [base, quote] = (series === 'Spread' ? 'SOL-BTC' : series).split('-');
+  const rows = replaySamples().map(row => [new Date(row.time).toISOString(), row[base], row[quote], row[series]].join(','));
+  const data = new Blob([['time_utc,' + base + '_premium_pct,' + quote + '_premium_pct,spread_pp', ...rows].join('\n')], {type:'text/csv'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(data);
+  link.download = base + '-' + quote + '-spread.csv';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+};
+try {
+  const saved = JSON.parse(localStorage.getItem('seoul-spread-history') || '[]');
+  if (Array.isArray(saved)) history.push(...saved.filter(row =>
+    row && ['time', 'SOL', 'BTC', 'Spread'].every(key => Number.isFinite(row[key]))
+  ).slice(-6000));
+} catch {
+  // Storage may be unavailable in a private browsing session.
+}
+const seoulClock = new Intl.DateTimeFormat('en-GB', { timeZone:'Asia/Seoul', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+function updateClock() { id('seoul-time').textContent = 'SEOUL · ' + seoulClock.format(new Date()) + ' KST'; }
+updateClock();
+setInterval(updateClock, 1000);
+const number = new Intl.NumberFormat('en-US', {maximumFractionDigits:2});
+const signed = n => (n >= 0 ? '+' : '') + n.toFixed(3);
+let series = 'Spread', side = 'Long', hover = null;
+let replayTime = null;
+const replaySamples = () => (hasScoutPro() ? history : history.slice(-240)).filter(row => Number.isFinite(row[series]));
+id('replay-point').addEventListener('input', event => {
+  replayTime = replaySamples()[Number(event.target.value)]?.time ?? null;
+  draw();
+});
+id('replay-live').addEventListener('click', () => {
+  replayTime = hover = null;
+  draw();
+});
+function spreadDrivers(previous, current, [base, quote]) {
+  const inputs = row => [
+    [row?.quotes?.[base]?.krw, row?.quotes?.[quote]?.krw],
+    [row?.quotes?.[base]?.usd, row?.quotes?.[quote]?.usd],
+    row?.fx,
+  ];
+  const before = inputs(previous), after = inputs(current);
+  if (![...before.flat(), ...after.flat()].every(value => Number.isFinite(value) && value > 0)) return null;
+  const spread = ([krw, usd, fx]) => 100 * (krw[0] / (usd[0] * fx) - krw[1] / (usd[1] * fx));
+  const contributions = [0, 0, 0];
+  // Average across all six update orders to share interaction effects symmetrically.
+  for (const order of [[0,1,2], [0,2,1], [1,0,2], [1,2,0], [2,0,1], [2,1,0]]) {
+    const state = before.slice();
+    let value = spread(state);
+    for (const factor of order) {
+      state[factor] = after[factor];
+      const next = spread(state);
+      contributions[factor] += (next - value) / 6;
+      value = next;
+    }
+  }
+  return [...contributions, spread(after) - spread(before)];
+}
+function renderSpreadDrivers(previous, current, assets) {
+  const drivers = spreadDrivers(previous, current, assets);
+  ['krw', 'usd', 'fx', 'total'].forEach((key, index) => {
+    id('driver-' + key).textContent = drivers ? signed(drivers[index]) + ' pp' : '—';
+  });
+  id('driver-period').textContent = drivers
+    ? new Date(previous.time).toLocaleString() + ' → ' + new Date(current.time).toLocaleString()
+    : 'Two recorded readings with Korean prices, global prices, and FX are needed.';
+}
+function updateReplay(samples, assets) {
+  const control = id('replay-point');
+  const last = samples.length - 1;
+  let index = replayTime === null ? last : samples.findIndex(row => row.time >= replayTime);
+  if (index < 0) index = last;
+  control.max = Math.max(0, last);
+  control.disabled = last < 1;
+  control.value = Math.max(0, index);
+  id('replay-live').disabled = replayTime === null;
+  if (index < 0) {
+    renderSpreadDrivers(null, null, assets);
+    id('replay-context').textContent = 'Collecting readings in this browser…';
+    return index;
+  }
+  const row = samples[index];
+  control.setAttribute('aria-valuetext', new Date(row.time).toLocaleString() + ' · ' + signed(row[series]) + ' pp');
+  const previous = samples[index - 1];
+  renderSpreadDrivers(previous, row, assets);
+  const readings = samples.slice(0, index + 1);
+  const details = assets.map(asset => Number.isFinite(row[asset]) ? asset + ' ' + signed(row[asset]) + '%' : asset + ' unavailable');
+  if (previous && row.time - previous.time <= 45000 && assets.every(asset => Number.isFinite(previous[asset]) && Number.isFinite(row[asset]))) {
+    const [base, quote] = assets;
+    details.push('Spread contributions since the prior reading: ' + base + ' ' + signed(row[base] - previous[base]) +
+      ' pp, ' + quote + ' ' + signed(previous[quote] - row[quote]) + ' pp');
+  }
+  if (readings.length >= 10) {
+    const below = readings.filter(sample => sample[series] < row[series]).length;
+    const equal = readings.filter(sample => sample[series] === row[series]).length;
+    const rank = Math.round(100 * (below + equal / 2) / readings.length);
+    const minutes = Math.round((row.time - readings[0].time) / 60000);
+    details.push('Percentile rank ' + rank + ' across ' + readings.length + ' browser readings over ' + minutes + ' min');
+  } else {
+    details.push('Percentile available after 10 readings');
+  }
+  id('replay-context').textContent = details.join(' · ');
+  return index;
+}
+
+function fingerprintMatches(rows, key, targetTime, horizon) {
+  const data = rows.filter(r => Number.isFinite(r.time) && Number.isFinite(r[key])).sort((a,b)=>a.time-b.time);
+  const targetIndex = data.findLastIndex(r => r.time <= targetTime);
+  function feature(i) {
+    const end=data[i];
+    let start=i;
+    while(start>0 && end.time-data[start].time<600000) start--;
+    if(end.time-data[start].time<600000 || end.time-data[start].time>645000) return null;
+    const increments=[];
+    for(let j=start+1;j<=i;j++) {
+      const dt=data[j].time-data[j-1].time;
+      if(dt<=0 || dt>45000) return null;
+      increments.push((data[j][key]-data[j-1][key])*15000/dt);
+    }
+    const mean=increments.reduce((a,b)=>a+b,0)/increments.length;
+    const vol=Math.sqrt(increments.reduce((a,b)=>a+(b-mean)**2,0)/increments.length);
+    return {level:end[key], momentum:end[key]-data[start][key], vol};
+  }
+  if(targetIndex<0) return [];
+  const target=feature(targetIndex);
+  if(!target) return [];
+  const candidates=[];
+  for(let i=0;i<targetIndex;i++) {
+    const row=data[i];
+    if(row.time+horizon>data[targetIndex].time-600000) continue;
+    const f=feature(i);
+    if(!f) continue;
+    const score=Math.sqrt(((f.level-target.level)/.15)**2+((f.momentum-target.momentum)/.10)**2+((f.vol-target.vol)/.025)**2);
+    if(score>1.5) continue;
+    let j=i+1;
+    while(j<data.length && data[j].time<row.time+horizon) j++;
+    if(j>=data.length || data[j].time-(row.time+horizon)>45000) continue;
+    let contiguous=true;
+    for(let k=i+1;k<=j;k++) if(data[k].time-data[k-1].time>45000) {contiguous=false;break;}
+    if(contiguous) candidates.push({row,end:data[j],score,move:data[j][key]-row[key]});
+  }
+  const chosen=[];
+  for(const match of candidates.sort((a,b)=>a.score-b.score)) {
+    if(chosen.every(other=>Math.abs(other.row.time-match.row.time)>=horizon)) chosen.push(match);
+    if(chosen.length===20) break;
+  }
+  return chosen;
+}
+let fingerprintCache = {};
+function renderFingerprints(samples, assets, index) {
+  const row=samples[index], horizon=Number(id('fingerprint-horizon').value);
+  const cacheKey=[series,row?.time,samples.length,samples[0]?.time,horizon].join(':');
+  if(fingerprintCache.key!==cacheKey) fingerprintCache={key:cacheKey,matches:row?fingerprintMatches(samples,series,row.time,horizon):[]};
+  const matches=fingerprintCache.matches;
+  const key=assets.join('–');
+  id('fp-count').textContent=String(matches.length);
+  id('fingerprint-matches').replaceChildren();
+  for(const name of ['directions','median','range']) id('fp-'+name).textContent='—';
+  id('fingerprint-status').textContent=matches.length
+    ? key+' · '+matches.length+' non-overlapping matches for '+new Date(row.time).toLocaleString()+(matches.length<5?' · Small sample; interpret cautiously.':'')
+    : key+' · Not enough comparable history. Keep this browser open to record fresh readings; the target needs 10 minutes of continuous history and each match needs a completed outcome.';
+  if(!matches.length) return;
+  const moves=matches.map(m=>m.move).sort((a,b)=>a-b), n=moves.length;
+  id('fp-directions').textContent=moves.filter(v=>v<-.0005).length+' / '+moves.filter(v=>v>.0005).length+' ('+moves.filter(v=>Math.abs(v)<=.0005).length+' flat)';
+  id('fp-median').textContent=signed((moves[Math.floor((n-1)/2)]+moves[Math.ceil((n-1)/2)])/2)+' pp';
+  id('fp-range').textContent=signed(moves[0])+' to '+signed(moves.at(-1))+' pp';
+  for(const match of matches.slice(0,5)) {
+    const container=document.createElement('div'); container.className='fingerprint-match';
+    const title=document.createElement('strong'); title.textContent=new Date(match.row.time).toLocaleString()+' → '+signed(match.move)+' pp';
+    const drivers=spreadDrivers(match.row,match.end,assets);
+    const detail=document.createElement('small'); detail.textContent='Entry '+signed(match.row[series])+' pp · '+(drivers?'Korean '+signed(drivers[0])+' · Global '+signed(drivers[1])+' · FX '+signed(drivers[2])+' pp':'Price/FX attribution unavailable for this reading.');
+    const button=document.createElement('button'); button.type='button';button.textContent='Inspect in Replay';
+    button.onclick=()=>{replayTime=match.row.time;draw();};
+    container.append(title,detail,button);id('fingerprint-matches').append(container);
+  }
+}
+id('fingerprint-horizon').onchange=()=>draw();
+if(new URLSearchParams(location.search).get('feature')==='spread-fingerprints') id('spread-fingerprints').open=true;
+
+let sessionStats;
+let lastSessionRender;
+const sessionPanel = id('spread-session-map');
+function renderSessionMap(samples) {
+  if (!sessionPanel.open || !sessionStats) return;
+  const dayType = id('session-day').value;
+  const key = [series, dayType, samples.length, samples[0]?.time, samples.at(-1)?.time].join(':');
+  if (lastSessionRender === key) return;
+  lastSessionRender = key;
+  id('session-context').textContent = (series === 'Spread' ? 'SOL–BTC' : series.replace('-', '–')) +
+    ' · ' + samples.length + ' replay readings in this browser';
+  id('session-rows').replaceChildren(...sessionStats(samples, series, dayType).map(stat => {
+    const row = document.createElement('tr');
+    for (const value of [stat.name, stat.count, stat.typical === null ? 'Insufficient data' : stat.typical.toFixed(3) + ' pp',
+      stat.typical === null ? '—' : stat.wider + ' / ' + stat.narrower, stat.excluded, stat.rank === null ? '—' : stat.rank + '%']) {
+      row.insertCell().textContent = value;
+    }
+    const jump = document.createElement('button');
+    jump.type = 'button';
+    jump.textContent = 'View latest move';
+    jump.setAttribute('aria-label', 'View latest ' + stat.name + ' move in Spread Replay');
+    jump.disabled = stat.replayIndex < 0;
+    jump.onclick = () => {
+      replayTime = samples[stat.replayIndex].time;
+      draw();
+      id('replay-point').focus();
+    };
+    row.insertCell().append(jump);
+    return row;
+  }));
+}
+sessionPanel.addEventListener('toggle', () => renderSessionMap(replaySamples()));
+id('session-day').addEventListener('change', () => renderSessionMap(replaySamples()));
+import('/spread-sessions.js').then(module => {
+  sessionStats = module.sessionStats;
+  renderSessionMap(replaySamples());
+}).catch(() => { id('session-context').textContent = 'Session Map could not load. Refresh to try again.'; });
+
+function draw() {
+  const canvas = id('chart'), {width,height} = canvas.getBoundingClientRect();
+  const dpr = devicePixelRatio || 1;
+  canvas.width = width*dpr; canvas.height = height*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  const samples = replaySamples();
+  const values = samples.map(row => row[series]);
+  const assets = (series === 'Spread' ? 'SOL-BTC' : series).split('-');
+  const replayIndex = updateReplay(samples, assets);
+  renderFingerprints(samples, assets, replayIndex);
+  renderSessionMap(samples);
+  const showAssets = id('show-breakdown').checked;
+  const overlays = showAssets ? assets.map(asset => samples.map(row => row[asset])) : [];
+  const domain = [...values, ...overlays.flat().filter(Number.isFinite)];
+  const top = Math.max(.025,...domain), bottom = Math.min(-.025,...domain);
+  id('breakdown-legend').textContent = showAssets ? assets[0] + ' (teal) · ' + assets[1] + ' (blue) · Spread (burgundy)' : '';
+  const y = n => 18+(top-n)/(top-bottom)*(height-40);
+  const x = i => values.length === 1 ? width/2 : 52+i*(width-66)/Math.max(1,values.length-1);
+  ctx.font = '11px monospace';
+  for(let i=0;i<=4;i++){
+    const n=top-(top-bottom)*i/4;
+    ctx.strokeStyle='#d9c9ae';ctx.beginPath();ctx.moveTo(51,y(n));ctx.lineTo(width-12,y(n));ctx.stroke();
+    ctx.fillStyle='#68564b';ctx.fillText(n.toFixed(2) + ' pp',2,y(n)+4);
+  }
+  if (!values.length) {
+    id('chart-reading').textContent = 'Waiting for a reading';
+    id('cursor').textContent = 'No readings for this series yet';
+    return;
+  }
+  ctx.beginPath();ctx.strokeStyle='#7e3041';ctx.lineWidth=2;
+  values.forEach((n,i)=>i ? ctx.lineTo(x(i),y(n)) : ctx.moveTo(x(i),y(n)));
+  ctx.stroke();
+  if (values.length > 1) {
+    const fill = ctx.createLinearGradient(0, 12, 0, height - 20);
+    fill.addColorStop(0, '#7e304142');
+    fill.addColorStop(1, '#7e304100');
+    ctx.lineTo(x(values.length - 1), height - 20);
+    ctx.lineTo(x(0), height - 20);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  overlays.forEach((line, seriesIndex) => {
+    ctx.strokeStyle = ['#176345', '#48547e'][seriesIndex];
+    ctx.beginPath();
+    let connected = false;
+    line.forEach((value, index) => {
+      if (!Number.isFinite(value)) {
+        connected = false;
+        return;
+      }
+      if (connected) ctx.lineTo(x(index), y(value));
+      else ctx.moveTo(x(index), y(value));
+      connected = true;
+    });
+    ctx.stroke();
+  });
+  const index=replayTime !== null ? replayIndex : hover===null ? values.length-1 : Math.max(0,Math.min(values.length-1,Math.round((hover-52)/(width-66)*(values.length-1))));
+  if (hover !== null || replayTime !== null) {
+    ctx.strokeStyle = '#ae796e';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x(index), 18);
+    ctx.lineTo(x(index), height - 22);
+    ctx.stroke();
+  }
+  id('chart-reading').textContent = signed(values[index]) + ' pp';
+  ctx.fillStyle='#7e3041';ctx.beginPath();ctx.arc(x(index),y(values[index]),4,0,2*Math.PI);ctx.fill();
+  id('cursor').textContent=new Date(samples[index].time).toLocaleTimeString()+' · '+signed(values[index])+' pp · '+values.length+' readings';
+}
+function choices(group,change){
+  id(group).addEventListener('click',event=>{
+    const selected=event.target.closest('button');if(!selected)return;
+    for(const button of id(group).querySelectorAll('button')) button.setAttribute('aria-pressed',String(button===selected));
+    change(selected.textContent);
+  });
+}
+function calculate(){
+  const settlement = Number(id('settle').value);
+  id('settle-value').textContent = signed(settlement) + ' pp';
+  const valid = id('entry').checkValidity() && id('units').checkValidity();
+  const direction = side === 'Long' ? 1 : -1;
+  const units = Number(id('units').value);
+  const collateral = (5 + direction * Number(id('entry').value)) * 10 * units;
+  const payout = (5 + direction * settlement) * 10 * units;
+  id('collateral').textContent = valid ? number.format(collateral) + ' USDC' : '—';
+  id('receive').textContent = valid ? number.format(payout) + ' USDC' : '—';
+  id('net').textContent = valid ? signed(payout - collateral) + ' USDC' : '—';
+}
+id('show-breakdown').addEventListener('change', draw);
+let latestPrices = {};
+function updateChartSeries() {
+  const select = id('series');
+  series = select.value;
+  replayTime = null;
+  hover = null;
+  const label = select.selectedOptions[0].textContent;
+  id('chart-title').textContent = label + ' Spread';
+  updatePairQuotes();
+  draw();
+}
+id('series').addEventListener('change', event => {
+  if (pagePath === '/trade') {
+    const selection = event.target.value;
+    const benchmark = selection === 'Spread' ? 'BTC' : selection.startsWith('SOL-') ? selection.slice(4) : selection;
+    location.assign('/trade?pair=' + benchmark);
+    return;
+  }
+  updateChartSeries();
+});
+const tradeBenchmark = new URLSearchParams(location.search).get('pair');
+if (pagePath === '/trade' && ['ETH', 'XRP', 'DOGE'].includes(tradeBenchmark)) {
+  id('series').value = 'SOL-' + tradeBenchmark;
+  updateChartSeries();
+} else if (pagePath === '/trade' && ['ETH-BTC','XRP-BTC','DOGE-BTC'].includes(tradeBenchmark)) {
+  id('series').value = tradeBenchmark;
+  updateChartSeries();
+}
+choices('side',value=>{side=value;calculate()});
+for(const name of ['entry','settle','units'])id(name).addEventListener('input',calculate);
+id('chart').addEventListener('pointermove',e=>{hover=e.offsetX;draw()});
+id('chart').addEventListener('pointerleave',()=>{hover=null;draw()});
+new ResizeObserver(draw).observe(id('chart'));
+function updatePairQuotes() {
+  const [base, benchmark] = (series === 'Spread' ? 'SOL-BTC' : series).split('-');
+  const quote = latestPrices[benchmark];
+  const spread = latestPrices[base]?.premium - quote?.premium;
+  const baseQuote = latestPrices[base];
+  id('base-label').textContent = base + ' Premium';
+  id('SOL').textContent = baseQuote ? signed(baseQuote.premium) + ' pp' : '—';
+  id('solQuote').textContent = baseQuote ? '₩' + number.format(baseQuote.krw) + ' / $' + number.format(baseQuote.usd) : '';
+  const baseIcon = id('base-icon');
+  baseIcon.className = 'asset-icon ' + base.toLowerCase() + '-icon';
+  baseIcon.textContent = { ETH: 'Ξ', XRP: '╳', DOGE: 'Ð' }[base] || '';
+  if (base === 'SOL') baseIcon.innerHTML = '<i></i><i></i><i></i>';
+  id('benchmark-label').textContent = benchmark + ' Premium';
+  const icon = id('benchmark-icon');
+  icon.className = 'asset-icon ' + benchmark.toLowerCase() + '-icon';
+  icon.textContent = { BTC: '₿', XRP: '╳', DOGE: 'Ð' }[benchmark] || '';
+  if (benchmark === 'ETH') icon.innerHTML = '<svg width="15" height="21" viewBox="0 0 20 32" aria-hidden="true"><path fill="#fff" d="M10 0 0 16l10 5.9L20 16zM0 18l10 14 10-14-10 5.9z"/><path fill="#aab4df" d="M10 0v21.9L20 16zM10 23.9V32l10-14z"/><path fill="#c9d1f0" d="m0 16 10-4.5v10.4z"/><path fill="#838fbf" d="m20 16-10-4.5v10.4z"/></svg>';
+  id('spread-label').textContent = base + ' − ' + benchmark + ' Spread';
+  id('trade-pair-title').textContent = base + ' − ' + benchmark + ' Spread';
+  id('trade-pair-link').textContent = 'Trade ' + base + '–' + benchmark + ' ↗';
+  id('trade-pair-link').href = '/trade?pair=' + (base === 'SOL' ? benchmark : series);
+  id('BTC').textContent = quote ? signed(quote.premium) + ' pp' : '—';
+  id('btcQuote').textContent = quote ? '₩' + number.format(quote.krw) + ' / $' + number.format(quote.usd) : '';
+  id('Spread').textContent = Number.isFinite(spread) ? signed(spread) + ' pp' : '—';
+}
+const scoutRoutes = { 'SOL-BTC': 'BTC', 'SOL-ETH': 'ETH', 'SOL-XRP': 'XRP', 'SOL-DOGE': 'DOGE',
+  'ETH-BTC': 'ETH-BTC', 'XRP-BTC': 'XRP-BTC', 'DOGE-BTC': 'DOGE-BTC' };
+let scoutRules = [];
+try { scoutRules = JSON.parse(localStorage.getItem('seoul-scout-v1')) || []; } catch {}
+if (!Array.isArray(scoutRules)) scoutRules = [];
+const scoutRuns = new Map();
+function saveScout() {
+  try { localStorage.setItem('seoul-scout-v1', JSON.stringify(scoutRules)); } catch {
+    id('scout-status').textContent = 'Device storage is unavailable. Rules will last until this page closes.';
+  }
+}
+function renderScout() {
+  id('scout-rules').replaceChildren(...scoutRules.map(rule => {
+    const item = document.createElement('li');
+    item.textContent = rule.pair + ' ' + rule.direction + (rule.change ? ' by ' : ' ') + signed(rule.level) + (rule.change ? ' pp in ' : ' pp for ') + rule.minutes + ' min · ' +
+      (rule.change && !hasScoutPro() ? 'Scout Pro access required' : rule.alert || (scoutRuns.get(rule)?.start ? 'Condition met · timing' : 'Watching'));
+    const link = document.createElement('a');
+    link.href = '/trade?pair=' + scoutRoutes[rule.pair];
+    link.textContent = 'View pair';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = 'Remove';
+    remove.setAttribute('aria-label', 'Remove alert for ' + rule.pair);
+    remove.onclick = () => {
+      scoutRules = scoutRules.filter(entry => entry !== rule);
+      scoutRuns.delete(rule);
+      saveScout();
+      renderScout();
+    };
+    item.append(link, remove);
+    return item;
+  }));
+}
+document.querySelectorAll('[data-scout-rule]').forEach(button => {
+  button.addEventListener('click', () => {
+    const input = id('scout-rule');
+    input.value = button.dataset.scoutRule;
+    input.focus();
+  });
+});
+id('scout-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const input = id('scout-rule');
+  const value = input.value.trim().replace(/[–—−]/g, '-');
+  const change = value.match(/^(?:alert me (?:if|when) )?([a-z]+-[a-z]+) (widens|narrows) by (\d+(?:\.\d+)?) pp in (\d+) min(?:ute)?s?[.!]?$/i);
+  if (change) {
+    const pair = change[1].toUpperCase(), level = Number(change[3]), minutes = Number(change[4]);
+    if (!hasScoutPro() || !Object.hasOwn(scoutRoutes, pair) || !Number.isFinite(level) || level <= 0 || minutes < 1 || minutes > 60) {
+      id('scout-status').textContent = 'Spread change alerts require Scout Pro, a supported pair, and a window of 1–60 minutes.';
+      return;
+    }
+    scoutRules.push({pair, direction: change[2].toLowerCase(), level, minutes, change: true});
+    input.value = '';
+    id('scout-status').textContent = 'Spread change alert added.';
+    saveScout();
+    renderScout();
+    return;
+  }
+  const match = value.match(/^(?:alert me (?:if|when) )?([a-z]+)\s*-\s*([a-z]+)\s+(?:(?:goes|crosses|is)\s+)?(above|below)\s+([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*(?:pp|percentage points?)?\s*(?:(?:and (?:holds|stays there) )?for (\d+)\s*(?:min(?:ute)?s?))?[.!]?$/i);
+  const pair = match && (match[1] + '-' + match[2]).toUpperCase();
+  const level = Number(match?.[4]);
+  const minutes = Number(match?.[5] ?? 0);
+  if (!match || !scoutRoutes[pair] || !Number.isFinite(level) || minutes > 1440) {
+    id('scout-status').textContent = 'Try SOL–BTC above +0.5 pp for 5 minutes. Choose a pair from the chart and a duration up to 1,440 minutes.';
+    return;
+  }
+  scoutRules.push({ pair, direction: match[3].toLowerCase(), level, minutes });
+  input.value = '';
+  id('scout-status').textContent = 'Alert added.';
+  saveScout();
+  renderScout();
+});
+function checkScout(row, stale) {
+  if (pagePath !== '/') return;
+  for (const rule of scoutRules) {
+    const [base, quote] = rule.pair.split('-');
+    const spread = row[base] - row[quote];
+    if (stale || !Number.isFinite(spread) || !Number.isFinite(row.time) || Date.now() - row.time > 45000) {
+      scoutRuns.delete(rule);
+      continue;
+    }
+    if (rule.change) {
+      if (!hasScoutPro()) { scoutRuns.delete(rule); continue; }
+      const target = row.time - rule.minutes * 60000;
+      const baseline = history.findLast(sample => sample.time <= target && Number.isFinite(sample[base] - sample[quote]));
+      if (!baseline || target - baseline.time > 45000) { scoutRuns.delete(rule); continue; }
+      const delta = spread - (baseline[base] - baseline[quote]);
+      const met = rule.direction === 'widens' ? delta >= rule.level : delta <= -rule.level;
+      if (met && !scoutRuns.get(rule)?.fired) {
+        rule.alert = signed(delta) + ' pp over ' + rule.minutes + ' min. Premium changes: ' +
+          base + ' ' + signed(row[base] - baseline[base]) + ' pp, ' + quote + ' ' + signed(row[quote] - baseline[quote]) + ' pp.';
+        id('scout-status').textContent = rule.pair + ' spread change alert triggered.';
+        saveScout();
+      }
+      scoutRuns.set(rule, {fired:met});
+      continue;
+    }
+    const old = scoutRuns.get(rule);
+    if (old && row.time <= old.last.time) continue;
+    const continuous = old && row.time - old.last.time <= 45000;
+    const met = rule.direction === 'above' ? spread > rule.level : spread < rule.level;
+    const run = { last: row, start: met ? (continuous && old.start || row) : null,
+      baseline: continuous && old.start ? old.baseline : (continuous ? old.last : row),
+      fired: !!(met && continuous && old.fired) };
+    scoutRuns.set(rule, run);
+    if (!run.start || run.fired || row.time - run.start.time < rule.minutes * 60000) continue;
+    run.fired = true;
+    const evidence = run.baseline.time === row.time
+      ? 'Observed premiums: ' + base + ' ' + signed(row[base]) + '%, ' + quote + ' ' + signed(row[quote]) + '%.'
+      : 'Premium changes: ' + base + ' ' + signed(row[base] - run.baseline[base]) + ' pp, ' +
+        quote + ' ' + signed(row[quote] - run.baseline[quote]) + ' pp.';
+    rule.alert = signed(spread) + ' pp at ' + new Date(row.time).toLocaleString() + '. ' + evidence;
+    id('scout-status').textContent = rule.pair + ' alert triggered at ' + signed(spread) + ' pp.';
+    saveScout();
+  }
+  renderScout();
+}
+renderScout();
+const composerAssets = ['SOL', 'BTC', 'ETH', 'XRP', 'DOGE'];
+const composerKey = 'seoul-composer-v1';
+let compositions = [];
+try {
+  const saved = JSON.parse(localStorage.getItem(composerKey));
+  if (Array.isArray(saved)) compositions = saved;
+} catch {}
+const composerTimers = new Map();
+let composerTime = null;
+for (const [field, initial] of [['base', 'SOL'], ['first', 'BTC'], ['second', 'ETH']]) {
+  const select = id('composer-' + field);
+  select.replaceChildren(...composerAssets.map(asset => new Option(asset, asset)));
+  select.value = initial;
+}
+function saveCompositions() {
+  try { localStorage.setItem(composerKey, JSON.stringify(compositions)); }
+  catch { id('composer-status').textContent = 'Storage is unavailable. Changes last until this page closes.'; }
+}
+function composerSpread(row, spread) {
+  const weight = spread.weight / 100;
+  return row[spread.base] - weight * row[spread.first] - (1 - weight) * row[spread.second];
+}
+function renderComposer() {
+  if (!hasScoutPro()) return;
+  const selected = id('composer-saved');
+  const previous = selected.value;
+  selected.replaceChildren(...compositions.map(spread => new Option(
+    spread.base + ' − (' + spread.weight + '% ' + spread.first + ' + ' + (100 - spread.weight) + '% ' + spread.second + ')', spread.id
+  )));
+  if (compositions.some(spread => spread.id === previous)) selected.value = previous;
+  const spread = compositions.find(spread => spread.id === selected.value);
+  const samples = spread ? history.filter(row => Number.isFinite(composerSpread(row, spread))) : [];
+  const slider = id('composer-replay');
+  const last = samples.length - 1;
+  const index = composerTime === null ? last : samples.findIndex(row => row.time >= composerTime);
+  const point = samples[index < 0 ? last : index];
+  slider.max = Math.max(0, last);
+  slider.value = Math.max(0, index < 0 ? last : index);
+  slider.disabled = last < 1;
+  id('composer-remove').disabled = !spread;
+  id('composer-live').disabled = composerTime === null;
+  id('composer-reading').textContent = point ? new Date(point.time).toLocaleString() + ' · Spread ' +
+    signed(composerSpread(point, spread)) + ' pp · ' + [spread.base, spread.first, spread.second]
+      .map(asset => asset + ' ' + signed(point[asset]) + '%').join(' · ') :
+    spread ? 'Waiting for readings for all three assets.' : 'Save a spread to start replay.';
+  id('composer-alert').textContent = spread?.alert || (spread?.level != null ?
+    'Watching above ' + signed(spread.level) + ' pp for ' + spread.hold + ' min while this page is open.' : '');
+}
+id('composer-form').onsubmit = event => {
+  event.preventDefault();
+  if (!hasScoutPro()) return;
+  const [base, first, second] = ['base', 'first', 'second'].map(field => id('composer-' + field).value);
+  if (new Set([base, first, second]).size !== 3 || compositions.length >= 20) {
+    id('composer-status').textContent = 'Choose three different assets. You can save up to 20 spreads.';
+    return;
+  }
+  const weight = id('composer-weight').valueAsNumber, hold = id('composer-hold').valueAsNumber;
+  const level = id('composer-level').value === '' ? null : id('composer-level').valueAsNumber;
+  const spread = {id: crypto.randomUUID(), base, first, second, weight, hold, level};
+  compositions.push(spread);
+  composerTime = null;
+  id('composer-status').textContent = 'Spread saved.';
+  saveCompositions();
+  renderComposer();
+  id('composer-saved').value = spread.id;
+  renderComposer();
+};
+id('composer-remove').onclick = () => {
+  if (!hasScoutPro()) return;
+  const selected = id('composer-saved').value;
+  compositions = compositions.filter(spread => spread.id !== selected);
+  composerTimers.delete(selected);
+  composerTime = null;
+  id('composer-status').textContent = 'Spread removed.';
+  saveCompositions();
+  renderComposer();
+};
+id('composer-saved').onchange = id('composer-live').onclick = () => {
+  composerTime = null;
+  renderComposer();
+};
+id('composer-replay').oninput = event => {
+  const spread = compositions.find(entry => entry.id === id('composer-saved').value);
+  if (!spread || !hasScoutPro()) return;
+  composerTime = history.filter(row => Number.isFinite(composerSpread(row, spread)))[Number(event.target.value)]?.time ?? null;
+  renderComposer();
+};
+window.addEventListener('scout-pro-access', () => {
+  if (!hasScoutPro()) composerTimers.clear();
+  renderComposer();
+});
+function checkCompositions(row, stale) {
+  if (!hasScoutPro() || stale || !Number.isFinite(row.time) || Date.now() - row.time > 45000) {
+    composerTimers.clear();
+    return;
+  }
+  for (const spread of compositions) {
+    const value = composerSpread(row, spread);
+    if (spread.level === null || !Number.isFinite(value) || value <= spread.level) {
+      composerTimers.delete(spread.id);
+      continue;
+    }
+    const prior = composerTimers.get(spread.id);
+    if (prior && row.time <= prior.last) continue;
+    const timer = prior && row.time - prior.last <= 45000 ? prior : {start: row.time, fired: false};
+    timer.last = row.time;
+    composerTimers.set(spread.id, timer);
+    if (timer.fired || row.time - timer.start < spread.hold * 60000) continue;
+    timer.fired = true;
+    spread.alert = 'Triggered at ' + signed(value) + ' pp · ' + new Date(row.time).toLocaleString();
+    id('composer-status').textContent = spread.base + ' basket alert triggered.';
+    saveCompositions();
+  }
+}
+async function refresh(){
+  try{
+    const res=await fetch('/api/market'); if(!res.ok)throw Error();
+    const {prices,rate,fxDate,time,stale}=await res.json();
+    const row = { time, fx: rate, quotes: prices };
+    for (const [symbol, quote] of Object.entries(prices)) row[symbol] = quote.premium;
+    row.Spread = row.SOL - row.BTC;
+    for (const pair of ['SOL-ETH', 'SOL-XRP', 'SOL-DOGE', 'ETH-BTC', 'XRP-BTC', 'DOGE-BTC']) {
+      const [base, benchmark] = pair.split('-');
+      if (Number.isFinite(row[base]) && Number.isFinite(row[benchmark])) row[pair] = row[base] - row[benchmark];
+    }
+    for (const key of ['SOL']) {
+      const quote = id(key);
+      const value = signed(row[key]) + ' pp';
+      if (quote.textContent === value) continue;
+      quote.textContent = value;
+      if (!stale) quote.dataset.updated = 'true';
+    }
+    for(const key of ['SOL'])id(key.toLowerCase()+'Quote').textContent='₩'+number.format(prices[key].krw)+' / $'+number.format(prices[key].usd);
+    checkScout(row, stale);
+    checkCompositions(row, stale);
+    latestPrices = prices;
+    updatePairQuotes();
+    id('fx').textContent='₩'+number.format(rate);
+    id('fx').title = 'FX reference date ' + fxDate;
+    id('status').dataset.state = stale ? 'stale' : 'live';
+    id('status').textContent=(stale?'Delayed · ':'Live · ')+new Date(time).toLocaleTimeString();
+    if (!stale && (!history.length || time > history.at(-1).time)) {
+      history.push(row);
+      if (history.length > 6000) history.shift();
+      try { localStorage.setItem('seoul-spread-history', JSON.stringify(history)); } catch {}
+    }
+    draw();
+    renderComposer();
+  }catch{checkCompositions({}, true);checkScout({}, true);id('status').dataset.state = 'offline';id('status').textContent='Price feeds unavailable · retrying';}
+  finally{setTimeout(refresh,15000)}
+}
+async function refreshResearch() {
+  try {
+    const response = await fetch('/api/research');
+    if (!response.ok) throw Error();
+    const data = await response.json();
+    for (const key of ['spot', 'rolling']) {
+      id('research-' + key).textContent = Number.isFinite(data[key]) ? signed(data[key]) + ' pp' : '—';
+    }
+    const last = data.last;
+    const inputs = [last?.upbit?.value, last?.bithumb?.value, last?.fx];
+    if (inputs.every(value => Number.isFinite(value) && value > 0)) {
+      const [upbit, bithumb, fx] = inputs;
+      const premium = ((upbit + bithumb) / 2 / fx - 1) * 100;
+      id('settlement-inputs').textContent =
+        'Upbit ₩' + number.format(upbit) + ' · Bithumb ₩' +
+        number.format(bithumb) + ' · USD/KRW ' + number.format(fx);
+      id('settlement-result').textContent = 'Recalculated premium ' + signed(premium) +
+        ' pp' + (Number.isFinite(last.value) ? ' · Reported ' + signed(last.value) + ' pp' : '');
+    } else {
+      id('settlement-inputs').textContent = 'Settlement inputs unavailable';
+      id('settlement-result').textContent = '';
+    }
+    const next = data.expiries?.find(time => Number.isFinite(time) && time > Date.now());
+    id('research-expiry').textContent = next ? new Date(next).toLocaleString() : '—';
+    id('research-status').textContent = Number.isFinite(data.at)
+      ? 'Premium snapshot · ' + new Date(data.at).toLocaleString() : 'Premium snapshot time unavailable';
+  } catch {
+    id('research-status').textContent = 'Premium feed unavailable · retrying';
+  } finally {
+    setTimeout(refreshResearch, 60000);
+  }
+}
+for (const key of ['SOL']) {
+  id(key).addEventListener('animationend', () => delete id(key).dataset.updated);
+}
+const expiry = new Date();
+expiry.setUTCHours(16, 0, 0, 0);
+expiry.setUTCDate(expiry.getUTCDate() + (5 - expiry.getUTCDay() + 7) % 7);
+if (expiry.getTime() <= Date.now()) expiry.setUTCDate(expiry.getUTCDate() + 7);
+id('ticket-expiry').textContent = expiry.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', timeZone:'UTC' });
+calculate();
+refresh();
+refreshResearch();
+</script>
+
+<script>
+(() => {
+ const el=n=>document.getElementById('stress-'+n);
+ let actual=null;
+ const money=v=>new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v)+' USDC';
+ function outcome(entry,contracts,final,cost,long) {
+   const direction=long?1:-1;
+   const collateral=(500+direction*Math.round(entry*100))*contracts/10;
+   const payout=(500+direction*Math.round(final*100))*contracts/10;
+   return {collateral,payout,net:payout-collateral-cost,maxLoss:collateral+cost,maxProfit:100*contracts-collateral-cost,breakEven:entry+direction*cost/(10*contracts)};
+ }
+ function render() {
+   const entry=Number(el('entry').value),contracts=Number(el('contracts').value),fees=Number(el('fees').value),final=Number(el('final').value);
+   el('final-label').textContent=(final>=0?'+':'')+final.toFixed(2)+' pp';
+   const valid=el('entry').value!==''&&el('contracts').value!==''&&el('fees').value!==''&&Number.isFinite(entry)&&Math.abs(entry)<=4.99&&Number.isInteger(contracts)&&contracts>=1&&contracts<=10000&&Number.isFinite(fees)&&fees>=0&&fees<=1000000;
+   el('results').replaceChildren();
+   if(!valid){el('results').textContent='Enter a valid entry, contract count, and costs to compare outcomes.';return;}
+   const same=actual&&Math.round(entry*100)===actual.strike&&contracts===actual.contracts;
+   el('source').textContent=same?'On-chain terms · '+actual.pair+' · '+actual.market:'Hypothetical terms — changing these fields does not change the market or trade size.';
+   for(const long of [true,false]) {
+     const result=outcome(entry,contracts,final,fees,long),card=document.createElement('div');card.className='stress-outcome';
+     const heading=document.createElement('h3');heading.textContent=long?'Long spread':'Short spread';
+     const list=document.createElement('dl');
+     const entries=[['Entry collateral',money(result.collateral)],['Settlement payout',money(result.payout)],['Profit / loss after entered costs',(result.net>=0?'+':'')+money(result.net)],['Break-even settlement',Math.abs(result.breakEven)<=5?result.breakEven.toFixed(4)+' pp':'Outside settlement band'],['Maximum loss including entered costs',money(result.maxLoss)],['Best-case profit / loss after costs',money(result.maxProfit)]];
+     for(const [name,value] of entries){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=name;dd.textContent=value;list.append(dt,dd);}
+     card.append(heading,list);el('results').append(card);
+   }
+ }
+ window.addEventListener('seoul-market-inspected',event=>{
+   actual=event.detail;el('entry').value=(actual.strike/100).toFixed(2);el('contracts').value=actual.contracts;el('final').value=(actual.strike/100).toFixed(2);render();
+ });
+ document.querySelectorAll('[data-stress]').forEach(button=>button.onclick=()=>{
+   if(el('entry').value==='')return;
+   const e=Number(el('entry').value),sign=e<0?-1:1;
+   const values={entry:e,zero:0,narrow:sign*Math.max(0,Math.abs(e)-.5),widen:sign*(Math.abs(e)+.5)};
+   el('final').value=Math.max(-5,Math.min(5,values[button.dataset.stress]));render();
+ });
+ for(const key of ['entry','contracts','fees','final'])el(key).addEventListener('input',render);
+ async function loadMarketTerms() {
+  if(location.pathname!=='/trade')return;
+  try {
+   const config=await fetch('/mainnet.json').then(r=>r.json());
+   const pair=new URLSearchParams(location.search).get('pair')||'BTC';
+   const address=document.getElementById('market').value.trim()||(pair==='BTC'?config.marketAddress:config.pairMarkets?.[pair]);
+   if(!address)throw Error('No configured market for this pair. Enter hypothetical terms to explore outcomes.');
+   const response=await fetch('/deploy-rpc',{method:'POST',body:JSON.stringify({method:'getAccountInfo',params:[address,{encoding:'base64',commitment:'confirmed'}]}),signal:AbortSignal.timeout(15000)});
+   const body=await response.json(),account=body.result?.value;
+   if(!response.ok||body.error||account?.owner!==config.programId)throw Error('Market terms unavailable. You can enter hypothetical terms or retry View market.');
+   const bytes=Uint8Array.from(atob(account.data[0]),c=>c.charCodeAt(0));
+   if(bytes.length!==100||bytes[0]!==1)throw Error('Unexpected market data.');
+   const fields=new DataView(bytes.buffer),strike=Number(fields.getBigInt64(12,true)),contracts=Number(fields.getBigInt64(20,true));
+   if(Math.abs(strike)>499||contracts<1||contracts>10000)throw Error('Unexpected market terms.');
+   window.dispatchEvent(new CustomEvent('seoul-market-inspected',{detail:{market:address,pair:(pair.includes('-')?pair:'SOL-'+pair).replace('-','–'),strike,contracts}}));
+  }catch(error){if(!actual)el('source').textContent=error.message;}
+ }
+ render();loadMarketTerms();
+})();
+</script>
+</html>
+
+<script type="module">
+import { phantom, connectWallet } from '/wallet.js';
+const proButton = document.getElementById('scout-pro-check');
+const proStatus = document.getElementById('scout-pro-status');
+let accessRequest = 0;
+let recheck;
+function setAccess(until) {
+  window.dispatchEvent(new CustomEvent('scout-pro-access', {detail:until}));
+}
+async function checkAccess() {
+  const request = ++accessRequest;
+  const wallet = phantom?.publicKey?.toBase58();
+  clearTimeout(recheck);
+  if (!wallet) setAccess(0);
+  if (!wallet) { proStatus.textContent = 'Connect Phantom to check access.'; return; }
+  proStatus.textContent = 'Checking BASIS balance and USD price…';
+  try {
+    const response = await fetch('/api/scout-pro?wallet=' + encodeURIComponent(wallet));
+    const result = await response.json();
+    if (request !== accessRequest || wallet !== phantom?.publicKey?.toBase58()) return;
+    if (!response.ok) throw Error(result.error);
+    const value = new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:4}).format(result.usd);
+    proStatus.textContent = result.eligible ? 'Scout Pro unlocked · ' + value + ' in BASIS' : value + ' in BASIS · $20 required';
+    setAccess(result.eligible ? Date.now() + 120000 : 0);
+    recheck = setTimeout(checkAccess, 115000);
+  } catch {
+    if (request === accessRequest) {
+      setAccess(0);
+      proStatus.textContent = 'Could not verify balance and price. Check access again.';
+    }
+  }
+}
+proButton.onclick = async () => {
+  try {
+    if (!phantom?.isConnected) await connectWallet();
+    await checkAccess();
+  } catch (error) { proStatus.textContent = error.message; }
+};
+if (location.pathname === '/') {
+  phantom?.on('accountChanged', () => { setAccess(0); checkAccess(); });
+  phantom?.on('disconnect', () => {
+    ++accessRequest;
+    clearTimeout(recheck);
+    setAccess(0);
+    proStatus.textContent = 'Connect Phantom to check access.';
+  });
+  if (phantom?.isConnected) checkAccess();
+}
+if (location.pathname === '/trade') {
+  const sdk = document.createElement('script');
+  sdk.src = '/deploy-web3.js';
+  sdk.onload = () => Promise.all([import('/exit-planner.js'), import('/round-depth.js')]).then(() => import('/trading.js')).catch(error => {
+    document.getElementById('trade-status').textContent = error.message;
+  });
+  sdk.onerror = () => { document.getElementById('trade-status').textContent = 'Trading tools failed to load. Refresh to retry.'; };
+  document.head.append(sdk);
+}
+</script>

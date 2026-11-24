@@ -1,0 +1,42 @@
+{
+  "builds": [
+    {
+      "src": "server.mjs",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "index.html",
+          "mainnet.json",
+          "seoul-engraving.jpg",
+          "seoul-seal.svg",
+          "trading.js",
+          "wallet.js",
+          "solana-web3.js",
+          "exit-planner.js",
+          "exit-math.js",
+          "settlement-replay.html",
+          "settlement-replay.js",
+          "round-depth.js",
+          "spread-sessions.js"
+        ]
+      }
+    },
+    {
+      "src": "launchpad/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/launchpad/?$",
+      "dest": "/launchpad/index.html"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/server.mjs"
+    }
+  ]
+}

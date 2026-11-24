@@ -1,0 +1,70 @@
+:root {
+  --paper: #f8f1e4;
+  --paper-hi: #fffaf0;
+  --paper-lo: #f4e9d6;
+  --ground: var(--paper);
+  --ink: #2c2321;
+  --ink-2: #68564b;
+  --ink-3: #68564b;
+  --seam: #d9c9ae;
+  --display: Inter, system-ui, sans-serif;
+  --text: var(--display);
+  --seoul-burgundy: #54202a;
+}
+body { background: var(--paper) !important; color: var(--ink); }
+#root .testnet-banner,
+#root .launchpad-foot { background: var(--paper-lo); color: var(--ink-2); border-color: var(--seam); }
+#root .testnet-banner :is(strong,a), #root .launchpad-foot a { color: var(--seoul-burgundy); }
+#root .launchpad-hdr, #root .launchpad-tabs { background: var(--paper-hi); border-color: var(--seam); }
+#root .launchpad-hdr .mark__en {
+  color: var(--seoul-burgundy);
+  font: bold clamp(23px,3vw,29px)/.95 Georgia,serif;
+  letter-spacing: -.065em;
+  white-space: nowrap;
+}
+#root .launchpad-hdr .mark__icon { border-radius: 50%; }
+#root .launchpad-word { border-left: 1px solid #c8a98c; color: var(--seoul-burgundy); padding-left: 10px; }
+#root :is(.launchpad-nav,.launchpad-tabs) a { color: var(--seoul-burgundy); }
+#root :is(.launchpad-nav,.launchpad-tabs) a[aria-current] { background: var(--seoul-burgundy); color: #fff5e4; }
+#root .launchpad-nav a[aria-current] small { color: inherit; }
+#root .launchpad-hdr :is(.btn--sol,.btn--gold) { background: var(--paper-hi); color: var(--seoul-burgundy); border-color: #b78379; }
+#root .indigo-home { width: min(1376px, calc(100% - clamp(28px,7vw,96px))); }
+#root .indigo-heading {
+  padding: clamp(20px,4vw,50px) clamp(16px,4vw,48px);
+  background: linear-gradient(90deg,#fffaf0 8%,#fffaf0eb 54%,#fffaf04d), url('/launchpad/brand/seoul-engraving.jpg') center 54% / cover;
+  border: 1px solid var(--seam);
+  border-radius: 12px;
+}
+#root .indigo-heading h1, #root .crosslaunch .xlaunch-hero h1, #root .passport-page h1 {
+  color: var(--seoul-burgundy);
+  font-family: Georgia, serif;
+  letter-spacing: -.055em;
+}
+#root .indigo-heading p, #root .feature-head p { color: var(--ink-2); }
+#root :is(.featured-market,.jade-empty-market,.crosslaunch .glass-panel,.order-book,.graduation-card.glass-panel,.passport-card) {
+  background: var(--paper-hi); color: var(--ink); border-color: var(--seam); border-radius: 12px; box-shadow: none;
+}
+#root :is(.featured-market,.jade-empty-market)::before { display: none; }
+#root .feature-progress { background: var(--paper-lo); border-color: var(--seam); color: var(--ink-2); }
+#root .feature-progress strong { color: var(--seoul-burgundy); }
+#root .feature-progress progress { accent-color: var(--seoul-burgundy); }
+#root .feature-price strong { color: var(--seoul-burgundy); }
+#root .indigo-markets tbody tr.market-selected { background: #f1e1d4; }
+#root .indigo-actions a { color: var(--seoul-burgundy); }
+#root :is(.crosslaunch,.orders-page,.passport-page,.indigo-home) .btn--ink,
+#root .crosslaunch :is(.wallet-mode button.active,.trade-toggle button.active,.network-chip) {
+  background: var(--seoul-burgundy); color: #fffaf0; border-color: var(--seoul-burgundy);
+}
+#root .crosslaunch :is(.rail-map,.truth-card), #root .order-price-card { background: var(--seoul-burgundy); border-color: #874a48; }
+#root .crosslaunch .rail-node { background: #6a303a; }
+#root .market-activity { background: #f4e9d6; color: var(--ink); border-color: var(--seam); }
+#root .activity-chart :is(small,.activity-range), #root .activity-range strong { color: var(--ink-2); }
+#root .activity-empty { border-color: var(--seam); color: var(--ink-2); }
+#root .activity-options { border-color: var(--seam); }
+#root .activity-options button { color: var(--seoul-burgundy); }
+#root .activity-options button[aria-pressed=true] { color: #fffaf0; background: var(--seoul-burgundy); }
+#root .activity-plot svg { background: repeating-linear-gradient(to bottom, transparent 0 42px, #8b645133 42px 43px); }
+@media (max-width: 600px) {
+  #root .indigo-heading { gap: 12px; }
+  #root .launchpad-hdr .mark__en { font-size: 21px; }
+}
