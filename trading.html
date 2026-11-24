@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mainnet Trade | Seoul Basis</title>
+<style>
+body{margin:2rem auto;padding:0 1rem;max-width:68rem;background:#f7eedc;color:#43232a;font:1rem system-ui}
+h1,h2{font-family:Georgia,serif}a{color:#782739}main{display:grid;grid-template-columns:2fr 1fr;gap:1rem}
+section{background:#fffaf0;border:1px solid #d8c7ab;padding:1.2rem;border-radius:8px;min-width:0}
+label{display:block;margin:.7rem 0}input,button{font:inherit;padding:.55rem;border:1px solid #b99d86;border-radius:4px;max-width:100%;box-sizing:border-box}
+button{background:#54202a;color:white;cursor:pointer;margin:.25rem 0}button:disabled{opacity:.5}
+#market{width:100%}pre{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:720px){main{grid-template-columns:1fr}}
+</style>
+<header><a href="/">Seoul Basis</a> <button id="connect-wallet" type="button">Connect Phantom</button> <span id="wallet-address" aria-live="polite"></span></header>
+<h1>SOL–BTC premium spread</h1>
+<p>Solana mainnet · USDC collateral</p>
+<main>
+<section>
+<h2>Trade or claim</h2>
+<label>Market address <input id="market" autocomplete="off"></label>
+<button data-action="inspect">View market</button>
+<a id="proof" hidden>View on Solana Explorer</a>
+<pre id="summary"></pre>
+<button data-action="long">Open long</button>
+<button data-action="short">Open short</button>
+<button data-action="claim">Claim payout or refund</button>
+<p>Each market has one long and one short. The settlement authority posts the final spread. Unmatched collateral can be reclaimed after expiry. If a matched market remains unsettled for 24 hours after expiry, either side can reclaim its collateral.</p>
+</section>
+<section>
+<h2>Market administration</h2>
+<label>Expiry in your local time <input id="expiry" type="datetime-local"></label>
+<label>Entry spread (pp) <input id="strike" type="number" min="-4.99" max="4.99" step=".01"></label>
+<label>Contracts <input id="contracts" type="number" min="1" max="10000" value="1"></label>
+<button data-action="create">Create market and USDC vault</button>
+<label>Final spread (pp) <input id="settlement" type="number" min="-5" max="5" step=".01"></label>
+<button data-action="settle">Post settlement</button>
+</section>
+</main>
+<pre id="status" role="status"></pre>
+<script src="/deploy-web3.js"></script><script src="/trading.js"></script>
+</html>
