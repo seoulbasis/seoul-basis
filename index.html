@@ -1403,7 +1403,7 @@ refreshResearch();
   try {
    const config=await fetch('/mainnet.json').then(r=>r.json());
    const pair=new URLSearchParams(location.search).get('pair')||'BTC';
-   const address=document.getElementById('market').value.trim()||(pair==='BTC'?config.marketAddress:config.pairMarkets?.[pair]);
+   const address=pair==='BTC'?(new URLSearchParams(location.search).get('market')||config.marketAddress):config.pairMarkets?.[pair];
    if(!address)throw Error('No configured market for this pair. Enter hypothetical terms to explore outcomes.');
    const response=await fetch('/deploy-rpc',{method:'POST',body:JSON.stringify({method:'getAccountInfo',params:[address,{encoding:'base64',commitment:'confirmed'}]}),signal:AbortSignal.timeout(15000)});
    const body=await response.json(),account=body.result?.value;

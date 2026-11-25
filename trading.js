@@ -239,7 +239,7 @@ for (const control of document.querySelectorAll('[data-action]')) {
   };
 }
 config.then(({ marketAddress, pairMarkets }) => {
-  if (benchmark === 'BTC' && !get('market').value && marketAddress) get('market').value = marketAddress;
+  if (benchmark === 'BTC' && !params.get('market') && marketAddress) get('market').value = marketAddress;
   if (benchmark !== "BTC" && pairMarkets?.[benchmark]) get("market").value = pairMarkets[benchmark];
   if (!get('market').value) {
     get('market-setup').open = true;
