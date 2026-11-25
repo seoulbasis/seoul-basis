@@ -232,6 +232,9 @@ async function run(action) {
         }
         review = { payer, text: description + '\nRound: ' + market + '\nUSDC vault: ' + vault + '\nFee payer: ' + payer };
       }
+      if (code < 3 && queueState?.history?.some(round => round.address === market.toBase58())) {
+        throw Error('This is a past round. Select the current round for new orders.');
+      }
       if (code < 3 && queueState?.upcoming?.some(round => round.address === market.toBase58())) {
         throw Error('This round is queued. Wait for the current round to close.');
       }

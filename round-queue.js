@@ -28,7 +28,7 @@ export function mountRoundQueue(pair, onUpdate) {
         const item = document.createElement('li'), link = document.createElement('a');
         link.href = '/trade?pair=' + encodeURIComponent(pair) + '&market=' + round.address;
         link.textContent = name + ' · ' + round.address.slice(0, 5) + '…' + round.address.slice(-5);
-        item.append(link, ' · ' + (name === 'Past round' ? 'Closed ' : 'Funding cutoff ') +
+        item.append(link, ' · ' + (name === 'Past round' && round.expiry * 1000 <= Date.now() ? 'Closed ' : 'Funding cutoff ') +
           expiryLabel.format(round.expiry * 1000) + ' KST' +
           (name === 'Current round' ? ' · ' + ['Neither side funded','Long funded','Short funded','Both sides funded'][round.funded] : ''));
         rows.append(item);

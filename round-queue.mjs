@@ -17,7 +17,7 @@ export async function readRoundQueue(config, rpc) {
     }));
   const entries = [{pair:'BTC', address:config.marketAddress},
     ...Object.entries(config.pairMarkets).map(([pair,address]) => ({pair,address})),
-    ...Object.entries(config.pastRounds ?? {}).flatMap(([pair, list]) => list.map(address => ({pair,address}))),
+    ...Object.entries(config.pastRounds ?? {}).flatMap(([pair, list]) => list.map(address => ({pair,address, archived:true}))),
     ...published.filter(Boolean)];
   const addresses = [...new Set(entries.map(entry => entry.address))];
   const {value} = await rpc('getMultipleAccounts', [addresses, {encoding:'base64', commitment:'confirmed'}]);
@@ -25,16 +25,16 @@ export async function readRoundQueue(config, rpc) {
   const now = Date.now() / 1000;
   for (const [index, address] of addresses.entries()) {
     const account = value[index];
-    const pair = entries.find(entry => entry.address === address).pair;
+    const {pair, archived = false} = entries.find(entry => entry.address === address);
     if (account?.owner !== config.programId) continue;
     const data = Buffer.from(account.data[0], 'base64');
     if (data.length !== 100 || data[0] !== 1) continue;
     const expiry = Number(data.readBigInt64LE(4));
-    (rounds[pair] ??= []).push({address, expiry, funded:data[1], settled:!!data[2]});
+    (rounds[pair] ??= []).push({address, expiry, funded:data[1], archived, settled:!!data[2]});
   }
   return Object.fromEntries(Object.entries(rounds).map(([pair, markets]) => {
     markets.sort((a,b) => a.expiry - b.expiry || a.address.localeCompare(b.address));
-    const [active, ...upcoming] = markets.filter(round => !round.settled && round.expiry > now);
-    return [pair, {active, upcoming, history:markets.filter(round => round.settled || round.expiry <= now).reverse()}];
+    const [active, ...upcoming] = markets.filter(round => !round.archived && !round.settled && round.expiry > now);
+    return [pair, {active, upcoming, history:markets.filter(round => round.archived || round.settled || round.expiry <= now).reverse()}];
   }));
 }
