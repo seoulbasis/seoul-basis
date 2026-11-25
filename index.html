@@ -506,6 +506,14 @@ if (pagePath === '/trade' || pagePath === '/settlement') {
 <div class="live-trade" hidden>
 <section class="panel">
 <h2>Trade or claim</h2>
+<section id="round-queue" class="stress-test" aria-labelledby="round-queue-title">
+<h3 id="round-queue-title">Round Queue</h3>
+<p>See the current funding cutoff, queued rounds, and past rounds for payouts or refunds.</p>
+<p role="status">Checking Solana mainnet rounds…</p>
+<ul style="padding-inline-start:1.25rem"></ul>
+<label><input type="checkbox" style="width:auto"> Show round and funding alerts while this page is open</label>
+<button type="button">Refresh queue</button>
+</section>
 <section id="round-depth" class="stress-test" aria-labelledby="round-depth-title">
 <h3 id="round-depth-title">Round Depth</h3>
 <p data-depth="status" role="status">Inspect a market to see its on-chain funding.</p>
@@ -582,6 +590,7 @@ if (pagePath === '/trade' || pagePath === '/settlement') {
 <label>Entry spread (pp) <input id="strike" type="number" min="-4.99" max="4.99" step=".01"></label>
 <label>Contracts <input id="contracts" type="number" min="1" max="10000" value="1"></label>
 <button data-action="create">Create market and USDC vault</button>
+<button data-action="publish">Publish selected round to queue</button>
 <label>Final spread (pp) <input id="settlement" type="number" min="-5" max="5" step=".01"></label>
 <button data-action="settle">Post settlement</button>
 </details>

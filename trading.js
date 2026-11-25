@@ -1,3 +1,4 @@
+import { mountRoundQueue } from './round-queue.js';
 import { mountSpreadVault, usdc, vaultAllocation } from './spread-vaults.js';
 import { payout, stateMode } from './exit-math.js';
 import { phantom, connectWallet } from './wallet.js';
@@ -81,6 +82,21 @@ const benchmark = ['ETH', 'XRP', 'DOGE', 'ETH-BTC', 'XRP-BTC', 'DOGE-BTC'].inclu
 const pair = benchmark.includes('-') ? benchmark : 'SOL-' + benchmark;
 const [base, quote] = pair.split('-');
 const pairLabel = pair.replace('-', '–');
+let queueState;
+let defaultAddress;
+let busy = false;
+const refreshQueue = mountRoundQueue(benchmark, queue => {
+  queueState = queue;
+  const next = queue.active?.address;
+  if (!busy && next && defaultAddress && next !== defaultAddress && !params.get('market') &&
+      get('market').value.trim() === defaultAddress) {
+    defaultAddress = next;
+    get('market').value = next;
+    get('market').dispatchEvent(new Event('input'));
+    document.querySelector('[data-action="inspect"]').click();
+  }
+});
+const initialQueue = refreshQueue();
 const storageKey = benchmark === 'BTC' ? 'seoul-market' : 'seoul-market-' + pair;
 const setupPair = get('setup-pair');
 setupPair.value = benchmark;
@@ -88,13 +104,11 @@ setupPair.addEventListener('change', () => {
   location.assign('/trade?pair=' + setupPair.value);
 });
 get('trade-title').textContent = 'Trade the ' + pairLabel + ' spread';
-get('market').value = benchmark === 'BTC'
-  ? params.get('market') || localStorage.getItem(storageKey) || ''
-  : localStorage.getItem(storageKey) || '';
+get('market').value = params.get('market') || localStorage.getItem(storageKey) || '';
 if (benchmark !== 'BTC') get('market').readOnly = true;
 const vaultPanel = get('spread-vaults');
 const vaultSelection = benchmark === 'BTC' && vaultPanel
-  ? mountSpreadVault(vaultPanel, get('market'), () => phantom?.publicKey?.toBase58(), config.then(settings => settings.marketAddress))
+  ? mountSpreadVault(vaultPanel, get('market'), () => phantom?.publicKey?.toBase58(), () => queueState?.active?.address ?? defaultAddress)
   : null;
 if (vaultSelection) vaultPanel.hidden = false;
 
@@ -183,11 +197,20 @@ async function run(action) {
     localStorage.setItem(storageKey, market.toBase58());
     if (action === 'inspect') return;
     const keys = [account(payer,false,true), account(market,true)];
-    if (action === 'settle') {
+    if (action === 'publish') {
+      if (payer.toBase58() !== authority) throw Error('Select the settlement authority wallet ending in RpFr.');
+      if (!terms.vaultAddress || terms.settled || Date.now() / 1000 >= terms.expiry) throw Error('Select an open round with a verified USDC vault.');
+      instructions.push(new TransactionInstruction({
+        programId: new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
+        keys: [account(payer, false, true)],
+        data: new TextEncoder().encode('seoul-basis:round:v1:' + benchmark + ':' + market),
+      }));
+      review = {payer, text:'Publish ' + pairLabel + ' round ' + market + ' to Round Queue.'};
+    } else if (action === 'settle') {
       if (payer.toBase58() !== authority) throw Error('Select the settlement authority wallet ending in RpFr.');
       instructions.push(instruction(programId, 3, keys, [spread('settlement')]));
     } else {
-      if ((allocation || vaultClaim) && market.toBase58() !== (await config).marketAddress) {
+      if (allocation && market.toBase58() !== ((await refreshQueue())?.active?.address ?? defaultAddress)) {
         throw Error('Spread Vaults uses the configured SOL–BTC round.');
       }
       const code = allocation ? (selection.side === 'long' ? 1 : 2) : vaultClaim ? 4 : {long:1, short:2, claim:4}[action];
@@ -209,6 +232,9 @@ async function run(action) {
         }
         review = { payer, text: description + '\nRound: ' + market + '\nUSDC vault: ' + vault + '\nFee payer: ' + payer };
       }
+      if (code < 3 && queueState?.upcoming?.some(round => round.address === market.toBase58())) {
+        throw Error('This round is queued. Wait for the current round to close.');
+      }
       if (code < 3 && (data[1] & code || Date.now() / 1000 >= expiry)) throw Error('This side is unavailable.');
       if (code === 4) instructions.push(createAta(payer, payer));
       instructions.push(instruction(programId, code, [...keys, account(ata(payer),true), account(vault,true),
@@ -217,12 +243,15 @@ async function run(action) {
   }
   status.textContent = review ? 'Checking the mainnet transaction…' : 'Review the mainnet transaction in Phantom.';
   if (!await send(wallet, [{ instructions, signer }], review)) return;
+  if (action === 'publish') void refreshQueue();
   status.textContent = 'Confirmed on Solana mainnet.';
   await run('inspect');
 }
 
 for (const control of document.querySelectorAll('[data-action]')) {
   control.onclick = async () => {
+    if (busy) return;
+    busy = true;
     const controls = [...document.querySelectorAll('[data-action]')];
     if (vaultSelection) vaultPanel.inert = true;
     controls.forEach(item => item.disabled = true);
@@ -230,6 +259,7 @@ for (const control of document.querySelectorAll('[data-action]')) {
     try { await run(control.dataset.action); }
     catch (error) { status.textContent = error.message; window.dispatchEvent(new Event('seoul-market-unavailable')); }
     finally {
+      busy = false;
       controls.forEach(item => item.disabled = false);
       if (vaultSelection) {
         vaultPanel.inert = false;
@@ -238,9 +268,10 @@ for (const control of document.querySelectorAll('[data-action]')) {
     }
   };
 }
-config.then(({ marketAddress, pairMarkets }) => {
-  if (benchmark === 'BTC' && !params.get('market') && marketAddress) get('market').value = marketAddress;
-  if (benchmark !== "BTC" && pairMarkets?.[benchmark]) get("market").value = pairMarkets[benchmark];
+Promise.all([config, initialQueue]).then(([{marketAddress, pairMarkets}, queue]) => {
+  const fallback = benchmark === 'BTC' ? marketAddress : pairMarkets?.[benchmark];
+  defaultAddress = queue?.active?.address ?? fallback;
+  if (!params.get('market') && defaultAddress) get('market').value = defaultAddress;
   if (!get('market').value) {
     get('market-setup').open = true;
     status.textContent = 'Create the ' + pairLabel + ' market and USDC vault with the settlement authority wallet.';

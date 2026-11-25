@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { readRoundQueue } from './round-queue.mjs';
 import { readFile } from 'node:fs/promises';
 import { serveGiwaLaunchpad } from './giwa-launchpad.mjs';
 
@@ -51,6 +52,19 @@ async function deploymentRpc(method, params) {
   deploymentRpcQueue = request.catch(() => {});
   return request;
 }
+const roundConfig = JSON.parse(await readFile(new URL('./mainnet.json', import.meta.url), 'utf8'));
+let roundCache;
+let roundRequest;
+async function queueRpc(method, params) {
+  const response = await fetch('https://api.mainnet-beta.solana.com', {
+    method:'POST', headers:{'Content-Type':'application/json'}, signal:AbortSignal.timeout(8000),
+    body:JSON.stringify({jsonrpc:'2.0', id:1, method, params}),
+  });
+  const result = await response.json();
+  if (!response.ok || result.error) throw Error('Round lookup failed');
+  return result.result;
+}
+
 const basisMint = '9Fu2BFSu97a3dRcrQuWuJnF2h91XiZXqUsy3kntS3XLu';
 async function scoutEligibility(wallet) {
   const [prices, response] = await Promise.all([
@@ -123,6 +137,20 @@ export default async function handler(req, res) {
     }
     return;
   }
+  if (req.url === '/api/round-queue' && req.method === 'GET') {
+    try {
+      if (!roundCache || Date.now() >= roundCache.until) {
+        roundRequest ??= readRoundQueue(roundConfig, queueRpc).then(value => {
+          roundCache = {value, until:Date.now()+12000};
+        }).finally(() => { roundRequest = undefined; });
+        await roundRequest;
+      }
+      res.writeHead(200, {'Content-Type':'application/json', 'Cache-Control':'public, s-maxage=10'}).end(JSON.stringify(roundCache.value));
+    } catch {
+      res.writeHead(503, {'Content-Type':'application/json', 'Cache-Control':'no-store'}).end(JSON.stringify({error:'Round queue temporarily unavailable.'}));
+    }
+    return;
+  }
   if (req.url === '/deploy-rpc' && req.method === 'POST') {
     try {
       let input = '';
@@ -147,6 +175,7 @@ export default async function handler(req, res) {
     '/trading.js': ['./trading.js', 'text/javascript'],
     '/spread-sessions.js': ['./spread-sessions.js', 'text/javascript'],
     '/spread-vaults.js': ['./spread-vaults.js', 'text/javascript'],
+    '/round-queue.js': ['./round-queue.js', 'text/javascript'],
     '/round-depth.js': ['./round-depth.js', 'text/javascript'],
     '/exit-planner.js': ['./exit-planner.js', 'text/javascript'],
     '/exit-math.js': ['./exit-math.js', 'text/javascript'],

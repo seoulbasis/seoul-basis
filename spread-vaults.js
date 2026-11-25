@@ -26,18 +26,12 @@ export function mountSpreadVault(panel, marketInput, walletAddress, configuredAd
   const review = form.querySelector('button');
   const claim = panel.querySelector('[data-action="vault-claim"]');
   let market;
-  let roundAddress;
-  configuredAddress.then(address => { roundAddress = address; render(); }).catch(() => {});
 
   function render() {
     review.disabled = true;
     claim.hidden = true;
     if (!market) {
       status.textContent = 'View the SOL–BTC market to load its on-chain terms.';
-      return;
-    }
-    if (market.market !== roundAddress) {
-      status.textContent = 'Select the configured SOL–BTC round to use Spread Vaults.';
       return;
     }
     const side = form.elements.side.value;
@@ -58,6 +52,7 @@ export function mountSpreadVault(panel, marketInput, walletAddress, configuredAd
     });
     panel.querySelector('[data-vault-position]').textContent = positions.join('\n');
     try {
+      if (market.market !== configuredAddress()) throw Error('Select the current SOL–BTC round for new allocations.');
       const amount = vaultAllocation({ ...market, wallet: connected }, side, form.elements.cap.value, Date.now() / 1000);
       status.textContent = usdc(amount) + ' required for the full ' + side + ' side.';
       review.disabled = panel.inert;

@@ -7,5 +7,17 @@
     "ETH": "2JhCmQtth6MaL4ZaRoof9jf5ahvfDhWYYMyu6bMkCcY9",
     "XRP": "FktUnYyBJgex2VrEdqkX3A3qoGwCCxYuykuTLE5DMQzc",
     "DOGE": "EvgH1sAT1HKoze3vkQi5JVuY1qfJvAs1KdtH8ZoisV6j"
+  },
+  "pastRounds": {
+    "BTC": [
+      "FbRpcwzBwb8vfRSxUTEqMHdSZU9StvCBkf82emV7DvTn"
+    ],
+    "ETH": [
+      "Botbc2j3Zi91ziqYRtreqaPJ498tSc9uY65MhFVwCAz2",
+      "GoxyCBCq6pEXdMF7f2fWu7t9k4UgwQMYXHXwSVJ8dRY6"
+    ],
+    "XRP": [
+      "2N9B1u4Uxmc5axVzwP6uxBiDDH8BE4GQSX8SUKfnsNCu"
+    ]
   }
 }
