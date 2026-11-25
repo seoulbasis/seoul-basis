@@ -520,6 +520,21 @@ if (pagePath === '/trade' || pagePath === '/settlement') {
 </div>
 <button data-depth="refresh" type="button">Refresh funding</button>
 </section>
+<section id="spread-vaults" class="stress-test" aria-labelledby="spread-vaults-title" hidden>
+<h3 id="spread-vaults-title">Spread Vaults</h3>
+<p>Fund an available SOL–BTC side from your Phantom wallet. The round vault holds the collateral until settlement or refund.</p>
+<form>
+<div class="stress-inputs">
+<label>Side<select name="side"><option value="long">Long spread</option><option value="short">Short spread</option></select></label>
+<label>Per-round cap (USDC)<input name="cap" type="text" inputmode="decimal" value="100" maxlength="14" required></label>
+</div>
+<button data-action="vault-fund" type="button" disabled>Review allocation</button>
+</form>
+<p role="status"></p>
+<p data-vault-position style="white-space:pre-line"></p>
+<button data-action="vault-claim" type="button" hidden>Review payout or refund</button>
+<p><small>Each side requires its full on-chain collateral. This cap applies to the allocation you review here. Every allocation requires wallet approval.</small></p>
+</section>
 <details id="spread-exit-planner" class="stress-test" open>
 <summary>Spread Exit Planner <small>Position targets &amp; vault coverage</small></summary>
 <p id="exit-source" role="status">View a market to load verified terms and funding.</p>

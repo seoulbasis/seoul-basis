@@ -1,3 +1,5 @@
+import { mountSpreadVault, usdc, vaultAllocation } from './spread-vaults.js';
+import { payout, stateMode } from './exit-math.js';
 import { phantom, connectWallet } from './wallet.js';
 const { PublicKey, Keypair, SystemProgram, Transaction, TransactionInstruction,
   } = solanaWeb3;
@@ -16,7 +18,7 @@ function account(pubkey, isWritable = false, isSigner = false) {
   return { pubkey, isWritable, isSigner };
 }
 
-async function send(wallet, plans) {
+async function send(wallet, plans, review) {
   const { value: lifetime } = await rpc('getLatestBlockhash', [{ commitment }]);
   const transactions = plans.map(({ instructions, signer }) => {
     const tx = new Transaction({ feePayer: wallet.publicKey, blockhash: lifetime.blockhash,
@@ -24,6 +26,18 @@ async function send(wallet, plans) {
     if (signer) tx.partialSign(signer);
     return tx;
   });
+  if (review) {
+    const unsigned = transactions[0].serialize({requireAllSignatures:false, verifySignatures:false});
+    const { value } = await rpc('simulateTransaction', [
+      btoa(String.fromCharCode(...unsigned)), { encoding: 'base64', commitment, sigVerify: false },
+    ]);
+    if (value.err) throw Error('Solana rejected the preview. Check your balance and refresh the round.');
+    if (wallet.publicKey?.toBase58() !== review.payer.toBase58()) throw Error('Wallet changed. Review the allocation again.');
+    if (!window.confirm(review.text + '\n\nSolana mainnet simulation passed. Continue to Phantom?')) {
+      status.textContent = 'Review cancelled.';
+      return false;
+    }
+  }
   const messages = transactions.map(tx => Array.from(tx.serializeMessage()).join(','));
   const signed = transactions.length === 1
     ? [await wallet.signTransaction(transactions[0])]
@@ -51,6 +65,7 @@ async function send(wallet, plans) {
       await new Promise(resolve => setTimeout(resolve, 1200));
     }
   }));
+  return true;
 }
 
 const mint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -77,6 +92,12 @@ get('market').value = benchmark === 'BTC'
   ? params.get('market') || localStorage.getItem(storageKey) || ''
   : localStorage.getItem(storageKey) || '';
 if (benchmark !== 'BTC') get('market').readOnly = true;
+const vaultPanel = get('spread-vaults');
+const vaultSelection = benchmark === 'BTC' && vaultPanel
+  ? mountSpreadVault(vaultPanel, get('market'), () => phantom?.publicKey?.toBase58(), config.then(settings => settings.marketAddress))
+  : null;
+if (vaultSelection) vaultPanel.hidden = false;
+
 
 
 function createAta(payer, owner) {
@@ -100,6 +121,9 @@ function spread(id) {
 }
 
 async function run(action) {
+  const allocation = action === 'vault-fund';
+  const vaultClaim = action === 'vault-claim';
+  const selection = allocation || vaultClaim ? vaultSelection?.() : null;
   const programId = new PublicKey((await config).programId);
   const marketInput = get('market');
   const wallet = action === 'inspect' ? phantom : await connectWallet();
@@ -123,6 +147,10 @@ async function run(action) {
   }
   if (!marketInput.value.trim()) throw Error('This pair needs an initialized market and USDC vault.');
   const market = new PublicKey(marketInput.value.trim());
+  if ((allocation || vaultClaim) && selection?.market !== market.toBase58()) {
+    throw Error('View this round before reviewing a transaction.');
+  }
+  let review;
   const [vaultAuthority] = PublicKey.findProgramAddressSync([new TextEncoder().encode('vault'), market.toBytes()], programId);
   const vault = ata(vaultAuthority);
   if (action === 'create') instructions.push(createAta(payer, vaultAuthority));
@@ -148,7 +176,8 @@ async function run(action) {
       '\nClaimed sides ' + (['none','long','short','both'][data[3]] || 'unknown');
     let vaultBalance=0n;
     if(vaultInfo){const raw=Uint8Array.from(atob(vaultInfo.data[0]),c=>c.charCodeAt(0));if(vaultInfo.owner!==token.toBase58()||raw.length!==165||new PublicKey(raw.slice(0,32)).toBase58()!==mint.toBase58()||new PublicKey(raw.slice(32,64)).toBase58()!==vaultAuthority.toBase58())throw Error('Unexpected market vault.');vaultBalance=new DataView(raw.buffer).getBigUint64(64,true);}
-    window.dispatchEvent(new CustomEvent('seoul-market-inspected', {detail:{market:market.toBase58(),pair:pairLabel,strike,contracts,expiry,funded:data[1],settled:!!data[2],claimed:data[3],final:Number(fields.getBigInt64(28,true)),long:long.toBase58(),short:short.toBase58(),wallet:payer?.toBase58()||null,vaultAddress:vaultInfo?vault.toBase58():null,vaultBalance:vaultBalance.toString(),checkedAt:Date.now()}}));
+    const terms = {market:market.toBase58(),pair:pairLabel,strike,contracts,expiry,funded:data[1],settled:!!data[2],claimed:data[3],final:Number(fields.getBigInt64(28,true)),long:long.toBase58(),short:short.toBase58(),wallet:payer?.toBase58()||null,vaultAddress:vaultInfo?vault.toBase58():null,vaultBalance:vaultBalance.toString(),checkedAt:Date.now()};
+    window.dispatchEvent(new CustomEvent('seoul-market-inspected', {detail:terms}));
     get('proof').href = explorer(market);
     get('proof').hidden = false;
     localStorage.setItem(storageKey, market.toBase58());
@@ -158,15 +187,36 @@ async function run(action) {
       if (payer.toBase58() !== authority) throw Error('Select the settlement authority wallet ending in RpFr.');
       instructions.push(instruction(programId, 3, keys, [spread('settlement')]));
     } else {
-      const code = {long:1, short:2, claim:4}[action];
+      if ((allocation || vaultClaim) && market.toBase58() !== (await config).marketAddress) {
+        throw Error('Spread Vaults uses the configured SOL–BTC round.');
+      }
+      const code = allocation ? (selection.side === 'long' ? 1 : 2) : vaultClaim ? 4 : {long:1, short:2, claim:4}[action];
+      if (allocation || vaultClaim) {
+        let description;
+        if (allocation) {
+          const amount = vaultAllocation(terms, selection.side, selection.cap, Date.now() / 1000);
+          description = 'Fund the ' + selection.side + ' side with ' + usdc(amount) + '.';
+        } else {
+          const mode = stateMode(terms, Date.now() / 1000);
+          // The program claims long first if the wallet owns both sides.
+          const eligible = [['long', 1], ['short', 2]].find(([side, bit]) =>
+            terms[side] === payer.toBase58() && terms.funded & bit && !(terms.claimed & bit));
+          if (!terms.vaultAddress || !['settled', 'refund'].includes(mode) || !eligible) {
+            throw Error('No payout or refund is available for this wallet.');
+          }
+          const amount = payout(mode === 'settled' ? terms.final : terms.strike, terms.contracts, eligible[0] === 'long');
+          description = 'Claim ' + usdc(amount) + ' to your wallet.';
+        }
+        review = { payer, text: description + '\nRound: ' + market + '\nUSDC vault: ' + vault + '\nFee payer: ' + payer };
+      }
       if (code < 3 && (data[1] & code || Date.now() / 1000 >= expiry)) throw Error('This side is unavailable.');
       if (code === 4) instructions.push(createAta(payer, payer));
       instructions.push(instruction(programId, code, [...keys, account(ata(payer),true), account(vault,true),
         account(mint), account(vaultAuthority), account(token)]));
     }
   }
-  status.textContent = 'Review the mainnet transaction in Phantom.';
-  await send(wallet, [{ instructions, signer }]);
+  status.textContent = review ? 'Checking the mainnet transaction…' : 'Review the mainnet transaction in Phantom.';
+  if (!await send(wallet, [{ instructions, signer }], review)) return;
   status.textContent = 'Confirmed on Solana mainnet.';
   await run('inspect');
 }
@@ -174,11 +224,18 @@ async function run(action) {
 for (const control of document.querySelectorAll('[data-action]')) {
   control.onclick = async () => {
     const controls = [...document.querySelectorAll('[data-action]')];
+    if (vaultSelection) vaultPanel.inert = true;
     controls.forEach(item => item.disabled = true);
     status.textContent = '';
     try { await run(control.dataset.action); }
     catch (error) { status.textContent = error.message; window.dispatchEvent(new Event('seoul-market-unavailable')); }
-    finally { controls.forEach(item => item.disabled = false); }
+    finally {
+      controls.forEach(item => item.disabled = false);
+      if (vaultSelection) {
+        vaultPanel.inert = false;
+        vaultPanel.querySelector('form').dispatchEvent(new Event('input'));
+      }
+    }
   };
 }
 config.then(({ marketAddress, pairMarkets }) => {

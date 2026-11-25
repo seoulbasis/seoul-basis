@@ -132,7 +132,7 @@ export default async function handler(req, res) {
       }
       const { method, params } = JSON.parse(input);
       if (!['getLatestBlockhash', 'getBlockHeight', 'getAccountInfo', 'getMultipleAccounts', 'getMinimumBalanceForRentExemption',
-        'getSignatureStatuses', 'sendTransaction'].includes(method)) throw Error('Unsupported RPC method');
+        'getSignatureStatuses', 'simulateTransaction', 'sendTransaction'].includes(method)) throw Error('Unsupported RPC method');
       const upstream = await deploymentRpc(method, params);
       res.writeHead(upstream.status, { 'Content-Type': 'application/json' }).end(upstream.body);
     } catch (error) {
@@ -146,6 +146,7 @@ export default async function handler(req, res) {
     '/wallet.js': ['./wallet.js', 'text/javascript'],
     '/trading.js': ['./trading.js', 'text/javascript'],
     '/spread-sessions.js': ['./spread-sessions.js', 'text/javascript'],
+    '/spread-vaults.js': ['./spread-vaults.js', 'text/javascript'],
     '/round-depth.js': ['./round-depth.js', 'text/javascript'],
     '/exit-planner.js': ['./exit-planner.js', 'text/javascript'],
     '/exit-math.js': ['./exit-math.js', 'text/javascript'],

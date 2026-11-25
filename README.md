@@ -9,6 +9,7 @@ Seoul Basis tracks the Korean crypto premium and supports USDC-collateralized pr
 Seoul Basis compares Upbit's KRW price with Coinbase's USD price converted to won using USD/KRW. The premium is the percentage difference between those prices. A pair's spread is the base asset's premium minus the quote asset's premium. If SOL's premium is 3% and BTC's is 2%, the SOL–BTC spread is +1 percentage point.
 
 - **Market analysis** includes Spread Replay, Spread Drivers, Spread Fingerprints, session maps, and the Spread Composer.
+- **Spread Vaults** lets Phantom users review and fund an available side in the configured SOL–BTC round, with a USDC cap checked before signing. The existing on-chain round vault holds collateral. The panel shows the connected wallet’s locked collateral and settlement or refund eligibility.
 - **Trade planning** includes round depth, a spread stress test, and exit estimates.
 - **Trading and settlement** use a Solana wallet. Long and short traders collateralize rounds in USDC. The configured settlement authority submits the final spread, and eligible payouts are claimed from the round's vault.
 - **Settlement Replay** lets users review completed rounds and their on-chain settlement data.
