@@ -1,4 +1,12 @@
-import { calculatedTick, memoProgram, reasons, reviewPrefix, reviewSeconds } from './settlement-review.js';
+const memoProgram = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
+const reviewPrefix = 'seoul-review:v1:';
+const reviewSeconds = 900;
+const reasons = new Set(['calculation','solKrw','solUsd','btcKrw','btcUsd','fx','timing']);
+
+function validInputs({solKrw,solUsd,btcKrw,btcUsd,fx}) {
+  return [solKrw,solUsd,btcKrw,btcUsd,fx].every(value => Number.isFinite(value) && value > 0) &&
+    Number.isSafeInteger(Math.round(10000 * (solKrw / (solUsd * fx) - btcKrw / (btcUsd * fx))));
+}
 
 export async function readSettlementReview(address, config, rpc, now = Math.floor(Date.now() / 1000)) {
   const {value} = await rpc('getAccountInfo', [address, {encoding:'base64', commitment:'confirmed'}]);
@@ -29,10 +37,10 @@ export async function readSettlementReview(address, config, rpc, now = Math.floo
         if (!Number.isInteger(entry.tick) || Math.abs(entry.tick) > 500 ||
             !Number.isInteger(x?.time) || x.time < expiry * 1000 || Math.abs(at * 1000 - x.time) > 300000 ||
             !/^\d{4}-\d{2}-\d{2}$/.test(x.fxDate) || at + reviewSeconds >= expiry + 86400) return null;
-        if (!Number.isSafeInteger(calculatedTick(x))) return null;
-        return {signature:row.signature, tick:entry.tick, inputs:x, reason:Object.hasOwn(reasons,entry.reason) ? entry.reason : null, at};
+        if (!validInputs(x)) return null;
+        return {signature:row.signature, tick:entry.tick, inputs:x, reason:reasons.has(entry.reason) ? entry.reason : null, at};
       }
-      if (entry.type === 'report' && Object.hasOwn(reasons,entry.reason)) {
+      if (entry.type === 'report' && reasons.has(entry.reason)) {
         return {signature:row.signature, proposal:entry.proposal, reason:entry.reason, at};
       }
     } catch {
