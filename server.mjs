@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { readSettlementReview } from './settlement-review-server.mjs';
 import { readRoundQueue } from './round-queue.mjs';
 import { readFile } from 'node:fs/promises';
 import { serveGiwaLaunchpad } from './giwa-launchpad.mjs';
@@ -151,6 +152,17 @@ export default async function handler(req, res) {
     }
     return;
   }
+  if (req.method === 'GET' && req.url.startsWith('/api/settlement-review?')) {
+    const market = new URL(req.url, 'http://localhost').searchParams.get('market');
+    const sendReview = (code, body) => res.writeHead(code, {'Content-Type':'application/json','Cache-Control':'no-store'}).end(JSON.stringify(body));
+    if (!market || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(market)) return sendReview(400,{error:'Invalid market address.'});
+    try {
+      const review = await readSettlementReview(market, roundConfig, queueRpc);
+      return review ? sendReview(200,review) : sendReview(404,{error:'Market not found.'});
+    } catch {
+      return sendReview(503,{error:'Settlement review temporarily unavailable.'});
+    }
+  }
   if (req.url === '/deploy-rpc' && req.method === 'POST') {
     try {
       let input = '';
@@ -175,6 +187,7 @@ export default async function handler(req, res) {
     '/trading.js': ['./trading.js', 'text/javascript'],
     '/spread-sessions.js': ['./spread-sessions.js', 'text/javascript'],
     '/spread-vaults.js': ['./spread-vaults.js', 'text/javascript'],
+    '/settlement-review.js': ['./settlement-review.js', 'text/javascript'],
     '/round-queue.js': ['./round-queue.js', 'text/javascript'],
     '/round-depth.js': ['./round-depth.js', 'text/javascript'],
     '/exit-planner.js': ['./exit-planner.js', 'text/javascript'],

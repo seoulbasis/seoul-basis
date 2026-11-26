@@ -1,3 +1,4 @@
+import { calculatedTick, loadReview, memoProgram, mountSettlementReview, reviewPrefix, reviewSeconds } from './settlement-review.js';
 import { mountRoundQueue } from './round-queue.js';
 import { mountSpreadVault, usdc, vaultAllocation } from './spread-vaults.js';
 import { payout, stateMode } from './exit-math.js';
@@ -33,7 +34,7 @@ async function send(wallet, plans, review) {
       btoa(String.fromCharCode(...unsigned)), { encoding: 'base64', commitment, sigVerify: false },
     ]);
     if (value.err) throw Error('Solana rejected the preview. Check your balance and refresh the round.');
-    if (wallet.publicKey?.toBase58() !== review.payer.toBase58()) throw Error('Wallet changed. Review the allocation again.');
+    if (wallet.publicKey?.toBase58() !== review.payer.toBase58()) throw Error('Wallet changed. Review the transaction again.');
     if (!window.confirm(review.text + '\n\nSolana mainnet simulation passed. Continue to Phantom?')) {
       status.textContent = 'Review cancelled.';
       return false;
@@ -106,6 +107,13 @@ setupPair.addEventListener('change', () => {
 get('trade-title').textContent = 'Trade the ' + pairLabel + ' spread';
 get('market').value = params.get('market') || localStorage.getItem(storageKey) || '';
 if (benchmark !== 'BTC') get('market').readOnly = true;
+const reviewPanel = get('settlement-review');
+const refreshReview = benchmark === 'BTC' ? mountSettlementReview(get('market')) : null;
+if (refreshReview) {
+  reviewPanel.hidden = false;
+  document.querySelector('[data-action="propose-review"]').hidden = false;
+}
+
 const vaultPanel = get('spread-vaults');
 const vaultSelection = benchmark === 'BTC' && vaultPanel
   ? mountSpreadVault(vaultPanel, get('market'), () => phantom?.publicKey?.toBase58(), () => queueState?.active?.address ?? defaultAddress)
@@ -197,7 +205,37 @@ async function run(action) {
     localStorage.setItem(storageKey, market.toBase58());
     if (action === 'inspect') return;
     const keys = [account(payer,false,true), account(market,true)];
-    if (action === 'publish') {
+    if (action === 'propose-review' || action === 'report-review') {
+      if (!refreshReview || terms.settled || terms.funded !== 3 || Date.now()/1000 < expiry) {
+        throw Error('Select an expired, matched SOL–BTC round awaiting settlement.');
+      }
+      const entry = {market:market.toBase58(), reason:get('review-reason').value};
+      const record = await loadReview(entry.market);
+      if (action === 'propose-review') {
+        if (payer.toBase58() !== authority) throw Error('Select the settlement authority wallet ending in RpFr.');
+        if (Date.now()/1000 + reviewSeconds + 60 >= expiry + 86400) throw Error('The review and settlement window is too close to closing.');
+        const response = await fetch('/api/market', {cache:'no-store'});
+        const sample = await response.json();
+        if (!response.ok || sample.stale || !Number.isInteger(sample.time) ||
+            sample.time < expiry * 1000 || Date.now()-sample.time > 60000) throw Error('A fresh post-expiry price snapshot is required.');
+        entry.type = 'proposal';
+        entry.inputs = {solKrw:sample.prices?.SOL?.krw, solUsd:sample.prices?.SOL?.usd, btcKrw:sample.prices?.BTC?.krw,
+          btcUsd:sample.prices?.BTC?.usd, fx:sample.rate, fxDate:sample.fxDate, time:sample.time};
+        entry.tick = spread('settlement');
+        const calculated = calculatedTick(entry.inputs);
+        if (!record.proposals.length) delete entry.reason;
+        review = {payer,text:'Publish SOL–BTC settlement proposal for ' + market + '\nProposed: ' + entry.tick / 100 +
+          ' pp. Recalculated: ' + calculated / 100 + ' pp. The 15-minute review starts on confirmation.'};
+      } else {
+        if (!record.open) throw Error('This proposal is closed to flags.');
+        entry.type = 'report';
+        entry.proposal = record.proposals[0].signature;
+        review = {payer,text:'Publish a public settlement flag for ' + market + '. The wallet pays the Solana network fee.'};
+      }
+      instructions.push(SystemProgram.transfer({fromPubkey:payer,toPubkey:market,lamports:0}),
+        new TransactionInstruction({programId:new PublicKey(memoProgram),
+          keys:[account(payer,false,true)],data:new TextEncoder().encode(reviewPrefix + JSON.stringify(entry))}));
+    } else if (action === 'publish') {
       if (payer.toBase58() !== authority) throw Error('Select the settlement authority wallet ending in RpFr.');
       if (!terms.vaultAddress || terms.settled || Date.now() / 1000 >= terms.expiry) throw Error('Select an open round with a verified USDC vault.');
       instructions.push(new TransactionInstruction({
@@ -208,7 +246,15 @@ async function run(action) {
       review = {payer, text:'Publish ' + pairLabel + ' round ' + market + ' to Round Queue.'};
     } else if (action === 'settle') {
       if (payer.toBase58() !== authority) throw Error('Select the settlement authority wallet ending in RpFr.');
-      instructions.push(instruction(programId, 3, keys, [spread('settlement')]));
+      const tick = spread('settlement');
+      if (refreshReview) {
+        const record = await loadReview(market.toBase58());
+        const latest = record.proposals[0];
+        if (!latest || record.open || latest.tick !== tick) {
+          throw Error('Publish the same final spread and wait for its review window to close.');
+        }
+      }
+      instructions.push(instruction(programId, 3, keys, [tick]));
     } else {
       if (allocation && market.toBase58() !== ((await refreshQueue())?.active?.address ?? defaultAddress)) {
         throw Error('Spread Vaults uses the configured SOL–BTC round.');

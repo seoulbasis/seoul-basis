@@ -18,6 +18,7 @@
           "settlement-replay.js",
           "round-depth.js",
           "round-queue.js",
+          "settlement-review.js",
           "spread-vaults.js",
           "spread-sessions.js"
         ]

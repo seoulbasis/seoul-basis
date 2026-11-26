@@ -514,6 +514,17 @@ if (pagePath === '/trade' || pagePath === '/settlement') {
 <label><input type="checkbox" style="width:auto"> Show round and funding alerts while this page is open</label>
 <button type="button">Refresh queue</button>
 </section>
+<section id="settlement-review" class="stress-test" aria-labelledby="settlement-review-title" hidden>
+<h3 id="settlement-review-title">Settlement Challenge Window</h3>
+<p>Review the proposed SOL–BTC settlement and its price inputs. Each proposal opens a 15-minute review window on Seoul Basis.</p>
+<p role="status">Checking signed settlement records…</p>
+<dl class="exit-terms"></dl>
+<ul style="padding-inline-start:1.25rem"></ul>
+<label>Input to flag or correction reason <select id="review-reason"></select></label>
+<button data-action="report-review" type="button" hidden>Publish flag in Phantom</button>
+<button data-review-refresh type="button">Refresh review</button>
+<p><small>Flags are public Solana records and cost a network fee. The Seoul Basis settlement form checks the review window. The existing Solana program does not enforce it.</small></p>
+</section>
 <section id="round-depth" class="stress-test" aria-labelledby="round-depth-title">
 <h3 id="round-depth-title">Round Depth</h3>
 <p data-depth="status" role="status">Inspect a market to see its on-chain funding.</p>
@@ -592,6 +603,7 @@ if (pagePath === '/trade' || pagePath === '/settlement') {
 <button data-action="create">Create market and USDC vault</button>
 <button data-action="publish">Publish selected round to queue</button>
 <label>Final spread (pp) <input id="settlement" type="number" min="-5" max="5" step=".01"></label>
+<button data-action="propose-review" hidden>Publish SOL–BTC settlement proposal</button>
 <button data-action="settle">Post settlement</button>
 </details>
 </section>
