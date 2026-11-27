@@ -1,3 +1,4 @@
+import { mountSpreadLock } from './spread-lock.js';
 import { calculatedTick, loadReview, memoProgram, mountSettlementReview, reviewPrefix, reviewSeconds } from './settlement-review.js';
 import { mountRoundQueue } from './round-queue.js';
 import { mountSpreadVault, usdc, vaultAllocation } from './spread-vaults.js';
@@ -36,7 +37,7 @@ async function send(wallet, plans, review) {
     if (value.err) throw Error('Solana rejected the preview. Check your balance and refresh the round.');
     if (wallet.publicKey?.toBase58() !== review.payer.toBase58()) throw Error('Wallet changed. Review the transaction again.');
     if (!window.confirm(review.text + '\n\nSolana mainnet simulation passed. Continue to Phantom?')) {
-      status.textContent = 'Review cancelled.';
+      (review.statusElement ?? status).textContent = 'Review cancelled.';
       return false;
     }
   }
@@ -345,4 +346,9 @@ async function prepareFirstMarket() {
 }
 prepareFirstMarket().catch(error => {
   if (!status.textContent) status.textContent = error.message;
+});
+
+
+if (benchmark === 'BTC') mountSpreadLock({
+  rpc, send, account, instruction, config, ata, createAta, mint, token, authority, explorer, commitment,
 });

@@ -56,3 +56,13 @@ The JavaScript tests cover exit calculations, fingerprint matching, and spread s
 [vercel.json](vercel.json) configures the Node handler and static launchpad assets. Build the launchpad before uploading the Vercel deployment so the generated files are included. The web deployment uses the existing Solana program and market accounts in `mainnet.json`. Its wallet client expects the Solana Web3 browser bundle at `solana-web3.js` in the deployment root. For local development, the server resolves that bundle from the sibling `shadowpool-solana` checkout instead.
 
 Keep wallet keypairs and environment credentials outside Git.
+
+### Spread Lock
+
+Spread Lock starts with SOL–BTC and one contract per round. The creator sets an entry target, a direction, an entry deadline, and a later settlement expiry. Each side escrows 50 USDC. Two distinct wallets must fund before the entry deadline, and the settlement authority must attest a qualifying reading recorded after the second deposit. The attested spread becomes the entry.
+
+A widening of one percentage point transfers 10 USDC from short to long. Narrowing has the reverse effect. Payouts are capped by each side's 50 USDC deposit. Without activation, either funded wallet can refund after the entry deadline. An active round can refund 24 hours after expiry if the authority has not posted settlement.
+
+Attestations in the web app include a signed transaction memo with the Upbit and Coinbase price inputs, the USD/KRW rate, and the reading time. The program trusts the settlement authority for these inputs and enforces the timing and entry condition. The authority submits attestations manually. Rounds are shared by address through the Spread Lock panel on `/trade`.
+
+Build the program with `cargo build-sbf --manifest-path program/Cargo.toml`. The production panel only enables wallet actions once `spreadLockProgramId` in `mainnet.json` is configured and its account is executable on Solana mainnet. Deploy under a separate program ID to preserve the existing spread markets.

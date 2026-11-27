@@ -184,6 +184,7 @@ export default async function handler(req, res) {
     '/settlement-replay': ['./settlement-replay.html', 'text/html; charset=utf-8'],
     '/settlement-replay.js': ['./settlement-replay.js', 'text/javascript'],
     '/wallet.js': ['./wallet.js', 'text/javascript'],
+    '/spread-lock.js': ['./spread-lock.js', 'text/javascript'],
     '/trading.js': ['./trading.js', 'text/javascript'],
     '/spread-sessions.js': ['./spread-sessions.js', 'text/javascript'],
     '/spread-vaults.js': ['./spread-vaults.js', 'text/javascript'],

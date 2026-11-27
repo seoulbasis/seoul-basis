@@ -51,6 +51,7 @@ p { margin: 6px 0 0 }
 .trade .toolbar button { flex: 1 }
 canvas { display: block; width: 100%; height: 320px; background: #fbf3e4; border-radius: 9px; cursor: crosshair }
 #cursor { display: block; min-height: 18px; margin-top: 10px }
+#spread-lock [hidden] { display: none }
 .inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
 label { display: block; font-size: 13px; color: var(--mute) }
 input { width: 100%; margin-top: 5px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); padding: 9px; font: 14px var(--mono); accent-color: var(--accent) }
@@ -506,6 +507,34 @@ if (pagePath === '/trade' || pagePath === '/settlement') {
 <div class="live-trade" hidden>
 <section class="panel">
 <h2>Trade or claim</h2>
+<details id="spread-lock" class="stress-test" aria-labelledby="spread-lock-title" hidden>
+<summary id="spread-lock-title">Spread Lock · SOL–BTC</summary>
+<p>Two wallets each fund 50 USDC. If the settlement authority attests a qualifying SOL–BTC reading after both sides fund, that reading becomes the entry spread. Otherwise, reclaim your USDC after the entry deadline.</p>
+<p><small>The authority submits entry and expiry readings. Crossing the target alone does not activate the round. Long gains 10 USDC per percentage point of widening, and short gains the same on narrowing, capped at 50 USDC per side.</small></p>
+<p id="lock-status" role="status">Checking availability…</p>
+<form id="lock-create" class="inputs" hidden>
+<label>Target spread (pp) <input name="target" type="number" min="-5" max="5" step=".01" required></label>
+<label>Trigger <select name="direction"><option value="-1">At or below target</option><option value="1">At or above target</option></select></label>
+<label>Entry deadline <input name="deadline" type="datetime-local" required></label>
+<label>Round expiry <input name="expiry" type="datetime-local" required></label>
+<button type="submit">Create a Spread Lock</button>
+</form>
+<form id="lock-inspect" hidden>
+<label>Spread Lock address <input name="market" required></label>
+<button type="submit">Inspect round</button>
+</form>
+<div id="lock-round" hidden>
+<pre style="white-space:pre-wrap" id="lock-summary"></pre>
+<p><a id="lock-link">Share round ↗</a> · <a id="lock-explorer" target="_blank" rel="noopener">Inspect on Solana ↗</a></p>
+<div class="toolbar">
+<button type="button" data-lock="long">Fund long · 50 USDC</button>
+<button type="button" data-lock="short">Fund short · 50 USDC</button>
+<button type="button" data-lock="claim">Claim payout or refund</button>
+<button type="button" data-lock="activate" hidden>Attest entry</button>
+<button type="button" data-lock="settle" hidden>Attest settlement</button>
+</div>
+</div>
+</details>
 <section id="round-queue" class="stress-test" aria-labelledby="round-queue-title">
 <h3 id="round-queue-title">Round Queue</h3>
 <p>See the current funding cutoff, queued rounds, and past rounds for payouts or refunds.</p>

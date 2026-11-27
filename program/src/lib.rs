@@ -15,6 +15,8 @@ solana_program::entrypoint!(process_instruction);
 const AUTHORITY: Pubkey = pubkey!("GphtoNwxwkbKdjLmnMrUDs24zuXmyw2ScmZ2DM81RpFr");
 const USDC: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 const SIZE: usize = 100;
+const LOCK_SIZE: usize = 148;
+const MAX_READING_AGE: i64 = 90;
 const BAND: i64 = 500;
 const TIMEOUT: i64 = 86400;
 
@@ -37,15 +39,43 @@ fn process_instruction(program: &Pubkey, accounts: &[AccountInfo], input: &[u8])
     let mut accounts = accounts.iter();
     let signer = next_account_info(&mut accounts)?;
     let market = next_account_info(&mut accounts)?;
-    require(signer.is_signer && market.owner == program && market.data_len() == SIZE)?;
+    require(
+        signer.is_signer
+            && market.owner == program
+            && matches!(market.data_len(), SIZE | LOCK_SIZE),
+    )?;
     let now = Clock::get()?.unix_timestamp;
     let mut state = market.try_borrow_mut_data()?;
+
+    let lock = state.len() == LOCK_SIZE;
+    if lock && action == 5 {
+        require(args.len() == 32 && market.is_signer && state.iter().all(|byte| *byte == 0))?;
+        let deadline = integer(&args[..8]);
+        let expiry = integer(&args[8..16]);
+        let target = integer(&args[16..24]);
+        let direction = integer(&args[24..]);
+        require(
+            deadline > now
+                && expiry > deadline
+                && expiry <= now.saturating_add(30 * TIMEOUT)
+                && (-BAND..=BAND).contains(&target)
+                && matches!(direction, -1 | 1),
+        )?;
+        state[0] = 2;
+        state[4..12].copy_from_slice(&expiry.to_le_bytes());
+        state[20..28].copy_from_slice(&1i64.to_le_bytes());
+        state[100..108].copy_from_slice(&deadline.to_le_bytes());
+        state[108..116].copy_from_slice(&target.to_le_bytes());
+        state[116..124].copy_from_slice(&direction.to_le_bytes());
+        return Ok(());
+    }
 
     // An authority-created, rent-exempt state account defines one bilateral contract.
     // Its vault authority is the PDA derived from this account's address.
     if action == 0 {
         require(
-            args.len() == 24
+            !lock
+                && args.len() == 24
                 && signer.key == &AUTHORITY
                 && market.is_signer
                 && state.iter().all(|byte| *byte == 0),
@@ -64,21 +94,69 @@ fn process_instruction(program: &Pubkey, accounts: &[AccountInfo], input: &[u8])
         return Ok(());
     }
 
-    require(state[0] == 1)?;
+    require(state[0] == if lock { 2 } else { 1 })?;
+    let activated = lock && integer(&state[132..140]) != 0;
+    let funding_deadline = if lock {
+        integer(&state[100..108])
+    } else {
+        integer(&state[4..12])
+    };
+    if lock && action == 6 {
+        require(
+            args.len() == 16
+                && signer.key == &AUTHORITY
+                && state[1] == 3
+                && !activated
+                && now < funding_deadline,
+        )?;
+        let observed = integer(&args[..8]);
+        let timestamp = integer(&args[8..]);
+        let target = integer(&state[108..116]);
+        let direction = integer(&state[116..124]);
+        require(
+            timestamp <= now
+                && timestamp >= now.saturating_sub(MAX_READING_AGE)
+                && timestamp > integer(&state[140..148])
+                && (-BAND..=BAND).contains(&observed)
+                && if direction == 1 {
+                    observed >= target
+                } else {
+                    observed <= target
+                },
+        )?;
+        state[124..140].copy_from_slice(args);
+        return Ok(());
+    }
+
     let expiry = integer(&state[4..12]);
     let strike = integer(&state[12..20]);
     let contracts = integer(&state[20..28]);
 
     if action == 3 {
         require(
-            args.len() == 8
+            args.len() == if lock { 16 } else { 8 }
                 && signer.key == &AUTHORITY
                 && now >= expiry
                 && now < expiry + TIMEOUT
                 && state[1] == 3
-                && state[2] == 0,
+                && state[2] == 0
+                && (!lock || activated),
         )?;
-        state[28..36].copy_from_slice(&integer(args).clamp(-BAND, BAND).to_le_bytes());
+        if lock {
+            let timestamp = integer(&args[8..]);
+            require(
+                timestamp >= expiry
+                    && timestamp <= now
+                    && timestamp >= now.saturating_sub(MAX_READING_AGE),
+            )?;
+        }
+        let final_spread = integer(&args[..8]);
+        let payoff = if lock {
+            final_spread.saturating_sub(integer(&state[124..132]))
+        } else {
+            final_spread
+        };
+        state[28..36].copy_from_slice(&payoff.clamp(-BAND, BAND).to_le_bytes());
         state[2] = 1;
         return Ok(());
     }
@@ -123,7 +201,15 @@ fn process_instruction(program: &Pubkey, accounts: &[AccountInfo], input: &[u8])
 
     if action == 1 || action == 2 {
         let mask = action;
-        require(now < expiry && state[1] & mask == 0)?;
+        require(now < funding_deadline && state[1] & mask == 0)?;
+        if lock {
+            let opposite = if action == 1 {
+                &state[68..100]
+            } else {
+                &state[36..68]
+            };
+            require(opposite != signer.key.as_ref())?;
+        }
         let offset = if action == 1 { 36 } else { 68 };
         let ix = transfer_checked(
             &spl_token::ID,
@@ -147,13 +233,21 @@ fn process_instruction(program: &Pubkey, accounts: &[AccountInfo], input: &[u8])
         )?;
         state[offset..offset + 32].copy_from_slice(signer.key.as_ref());
         state[1] |= mask;
+        if lock && state[1] == 3 {
+            state[140..148].copy_from_slice(&now.to_le_bytes());
+        }
         return Ok(());
     }
 
     let long = state[1] & 1 != 0 && &state[36..68] == signer.key.as_ref() && state[3] & 1 == 0;
     let short = state[1] & 2 != 0 && &state[68..100] == signer.key.as_ref() && state[3] & 2 == 0;
     require(long || short)?;
-    require(state[2] == 1 || now >= expiry + TIMEOUT || (now >= expiry && state[1] != 3))?;
+    let refundable = if lock && !activated {
+        now >= funding_deadline
+    } else {
+        now >= expiry + TIMEOUT || (!lock && now >= expiry && state[1] != 3)
+    };
+    require(state[2] == 1 || refundable)?;
     let value = if state[2] == 1 {
         integer(&state[28..36])
     } else {
