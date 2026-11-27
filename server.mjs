@@ -186,6 +186,7 @@ export default async function handler(req, res) {
     '/wallet.js': ['./wallet.js', 'text/javascript'],
     '/spread-lock.js': ['./spread-lock.js', 'text/javascript'],
     '/trading.js': ['./trading.js', 'text/javascript'],
+    '/settlement-window.js': ['./settlement-window.js', 'text/javascript'],
     '/spread-sessions.js': ['./spread-sessions.js', 'text/javascript'],
     '/spread-vaults.js': ['./spread-vaults.js', 'text/javascript'],
     '/settlement-review.js': ['./settlement-review.js', 'text/javascript'],

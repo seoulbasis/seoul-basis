@@ -21,7 +21,8 @@
           "round-queue.js",
           "settlement-review.js",
           "spread-vaults.js",
-          "spread-sessions.js"
+          "spread-sessions.js",
+          "settlement-window.js"
         ]
       }
     },

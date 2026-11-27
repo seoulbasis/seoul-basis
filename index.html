@@ -454,6 +454,19 @@ if (pagePath === '/trade' || pagePath === '/settlement') {
         </dl>
       </details>
 
+      <details class="spread-replay" id="settlement-window-lab">
+        <summary>Settlement Window Lab <small>Compare payout rules</small></summary>
+        <p>Compare hypothetical payouts for one <strong data-window-pair>SOL–BTC</strong> contract using this browser’s Spread Replay readings.</p>
+        <form class="replay-controls">
+          <label>Expiry (local time) <input type="datetime-local" name="expiry" step="1" required></label>
+          <label>Entry spread (pp) <input type="number" name="entry" min="-4.99" max="4.99" step=".01" value="0" required></label>
+          <button type="button">Use replay selection</button>
+        </form>
+        <p role="status">Loading settlement rules…</p>
+        <dl class="spread-drivers" data-window-results></dl>
+        <div data-window-evidence></div>
+        <small>The expiry rule uses the last reading at or before expiry. The average and median use recorded samples in the preceding window. Missing price or FX inputs and gaps over 45 seconds invalidate affected rules. Payouts use the ±5 pp band and are simulations.</small>
+      </details>
       <details class="spread-replay" id="spread-session-map">
         <summary>Spread Session Map</summary>
         <div class="replay-controls"><label for="session-day">Days</label><select id="session-day"><option value="weekday">Weekdays</option><option value="weekend">Weekends</option></select></div>
@@ -947,6 +960,19 @@ import('/spread-sessions.js').then(module => {
   renderSessionMap(replaySamples());
 }).catch(() => { id('session-context').textContent = 'Session Map could not load. Refresh to try again.'; });
 
+let refreshSettlementWindow;
+import('/settlement-window.js').then(({ mountSettlementWindow }) => {
+  refreshSettlementWindow = mountSettlementWindow(() => {
+    const rows = replaySamples();
+    const selected = replayTime === null ? rows.at(-1) : rows.find(row => row.time >= replayTime) ?? rows.at(-1);
+    return { rows, selected };
+  }, () => (series === 'Spread' ? 'SOL-BTC' : series).split('-'));
+  if (location.hash === '#settlement-window-lab') id('settlement-window-lab').open = true;
+  refreshSettlementWindow();
+}).catch(() => {
+  id('settlement-window-lab').querySelector('[role="status"]').textContent = 'Settlement Window Lab could not load.';
+});
+
 function draw() {
   const canvas = id('chart'), {width,height} = canvas.getBoundingClientRect();
   const dpr = devicePixelRatio || 1;
@@ -959,6 +985,7 @@ function draw() {
   const replayIndex = updateReplay(samples, assets);
   renderFingerprints(samples, assets, replayIndex);
   renderSessionMap(samples);
+  refreshSettlementWindow?.();
   const showAssets = id('show-breakdown').checked;
   const overlays = showAssets ? assets.map(asset => samples.map(row => row[asset])) : [];
   const domain = [...values, ...overlays.flat().filter(Number.isFinite)];
